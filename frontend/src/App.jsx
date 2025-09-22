@@ -1,0 +1,33 @@
+import React from 'react'
+import {Route, Routes} from 'react-router-dom'
+import Navbar from './components/Navbar'
+import Home from './pages/Home'
+import About from './pages/About'
+import Contacts from './pages/Contacts'
+import Login from './pages/Login'
+import Appointments from './pages/Appointments'
+import Doctors from './pages/Doctors'
+import MyAppointments from './pages/MyAppointments'
+import Footer from './components/Footer'
+const App = () => {
+  return (
+    <div className="container">
+      <Navbar/>
+      <Routes>
+        <Route path='/' element={<Home/>}/>
+        <Route path='/about' element={<About/>}/>
+        <Route path='/contacts' element={<Contacts/>}/>
+        <Route path='/login' element={<Login/>}/>
+        <Route path='/appointments/:id' element={<Appointments/>}/>
+        <Route path='/doctors' element={<Doctors/>}/>
+        <Route path='/doctors/:speciality' element={<Doctors/>}/>
+        <Route path='/appointments' element={<MyAppointments/>}/>
+      </Routes>
+      <Footer/>
+    </div>
+    
+
+  )
+}
+
+export default App

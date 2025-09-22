@@ -1,0 +1,86 @@
+.hero-img{
+    width: 600px;
+    height: auto;
+    
+    bottom: 0;
+}
+
+@media (max-width: 768px) {
+    .hero-img{
+        width: 100%;
+        height: auto;
+    }
+}
+
+.specialty-card {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.specialty-card:hover {
+  transform: translateY(-8px);
+  background-color: #e9f5ff; /* light blue highlight */
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+.no-underline {
+  text-decoration: none;
+  color: inherit; /* optional: keeps parent color */
+}
+
+.doctor-card {
+  
+  width: 250px;
+  height: auto;
+  background:  #97c3e0;
+}
+
+.doctor-card-appointment {
+  margin-top: 10px;
+  border-radius: 20px;
+  width: 300px;
+  height: auto;
+  background:  #97c3e0;
+}
+
+.doctor-card-outer:hover{
+  transform: translateY(-8px);
+ /* lighter blue highlight */
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.doctor-card-outer{
+ transition: all 0.3s ease;
+}
+
+.more-btn{
+  background-color: #c1d9f3;
+ 
+  padding: 10px 20px;
+  border-radius: 12px !important;
+  text-decoration: none;
+  transition: background-color 0.3s ease;
+  width: fit-content;
+}
+.more-btn:hover{
+  background-color: #97c3e0;
+ 
+  text-decoration: none;
+}
+.sidebar p{
+  margin: 10px 0;
+  padding: 10px;
+  
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  width:200px;
+}
+
+.border-right{
+  border-right: 2px solid #e0e0e0;
+  padding-right: 20px;
+}
+
+.bg-color-white{
+  background-color: #f0f0f0;
+}
