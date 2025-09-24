@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 
 const CTASection = () => {
   return (
-     <div className=" my-5">
+     <div className=" my-5" mt-3>
       <div className="row bg-primary text-white rounded align-items-center p-2">
         
         {/* Left Side Content */}

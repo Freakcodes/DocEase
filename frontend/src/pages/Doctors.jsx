@@ -29,14 +29,14 @@ const Doctors = () => {
     
     <div className="row mt-4 space-between ">
       {/* Sidebar */}
-      <div className="sidebar col-lg-2 border-right ">
+      <div className="sidebar col-lg-2 col-4 border-right ">
         <p onClick={()=>speciality==='general-physician'?navigate('/doctors'):navigate('/doctors/general-physician')} className={`${speciality==='general-physician'?'bg-color-white':''}`}>Genenral Physician</p>
         <p onClick={()=>speciality==='cardiologist'?navigate('/doctors'):navigate('/doctors/cardiologist')} className={`${speciality==='cardiologist'?'bg-color-white':''}`}>Cardiologist</p>
         <p onClick={()=>speciality==='neurologist'?navigate('/doctors'):navigate('/doctors/neurologist')} className={`${speciality==='neurologist'?'bg-color-white':''}`}>Neurologist</p>
         <p onClick={()=>speciality==='pediatrician'?navigate('/doctors'):navigate('/doctors/pediatrician')} className={`${speciality==='pediatrician'?'bg-color-white':''}`}>Pediatrician</p>
         <p onClick={()=>speciality==='dentist'?navigate('/doctors'):navigate('/doctors/dentist')} className={`${speciality==='dentist'?'bg-color-white':''}`}>Dentist</p>
       </div>
-      <div className="main-content col-lg-9 ">
+      <div className="main-content col-lg-9 col-8 ">
         <div className=" text-center row">
           {filterDoc.slice(0, 8).map((doctors, index) => (
             <Link

@@ -4,7 +4,21 @@
     
     bottom: 0;
 }
+.pointer{
+  cursor: pointer;
+}
 
+.hide-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;     /* Firefox */
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari */
+}
+
+.fit-content{
+  width: fit-content;
+}
 @media (max-width: 768px) {
     .hero-img{
         width: 100%;
@@ -74,6 +88,14 @@
   cursor: pointer;
   transition: background-color 0.3s ease;
   width:200px;
+}
+
+@media(max-width:768px)
+{
+  .sidebar p{
+    width: 100px;
+  }
+  
 }
 
 .border-right{

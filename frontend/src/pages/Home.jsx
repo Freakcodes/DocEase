@@ -7,14 +7,14 @@ import Doctors from "./Doctors";
 
 const Home = () => {
   return (
-    <div>
+    <div className="container">
     <div className="row bg-primary text-white d-flex   mt-2 rounded ">
       
       <div
         className="col-lg-6 d-flex flex-column  justify-content-center rounded ml-4 "
         
       >
-        <h1 className="text-center fw-bolder">Your Health, Your Time — Book Appointments Easily</h1>
+        <h1 className="text-center fw-bolder mt-2">Your Health, Your Time — Book Appointments Easily</h1>
         <div className="row  mt-4  text-center">
           <div className="col-lg-3 pl-4">
             <img src={assets.group_profiles} className="" />
