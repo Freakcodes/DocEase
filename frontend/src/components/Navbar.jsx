@@ -37,7 +37,7 @@ const Navbar = () => {
             
           </ul>
           <div>
-            <NavLink className="btn btn-outline-light  btn-primary ms-3" to="/register">Create Account</NavLink>
+            <NavLink className="btn btn-outline-light  btn-primary ms-3" to="/login">Create Account</NavLink>
           </div>
         </div>
       </div>
