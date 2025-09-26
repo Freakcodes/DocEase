@@ -9,7 +9,6 @@ const RelatedDoctors = ({docId,speciality}) => {
     const filterDocs=()=>{
         const filter=doctors.filter((doc)=>(doc.speciality===speciality && doc._id!=id));
         setFilteredDocs(filter);
-        
     }
 
     useEffect(()=>{

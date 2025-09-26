@@ -9,6 +9,7 @@ import Appointments from './pages/Appointments'
 import Doctors from './pages/Doctors'
 import MyAppointments from './pages/MyAppointments'
 import Footer from './components/Footer'
+import MyProfile from './pages/MyProfile'
 const App = () => {
   return (
     <div className="container">
@@ -22,6 +23,7 @@ const App = () => {
         <Route path='/doctors' element={<Doctors/>}/>
         <Route path='/doctors/:speciality' element={<Doctors/>}/>
         <Route path='/appointments' element={<MyAppointments/>}/>
+        <Route path='/myprofile' element={<MyProfile/>}/>
       </Routes>
       <Footer/>
     </div>
