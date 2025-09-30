@@ -20,7 +20,7 @@ app.use(cors());
 
 
 //api endpoints
-app.use('api/admin',adminRouter)
+app.use('/api/admin',adminRouter)
 app.get('/',(req,res)=>{
     res.send('API WORKING FINE');
 })

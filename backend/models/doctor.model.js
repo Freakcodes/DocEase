@@ -53,10 +53,7 @@ const doctorSchema=new Schema({
         type:Object,
         required:true
     },
-    date:{
-        type:Number,
-        required:true
-    },
+    
 
     slots_booked:{type:Object,default:{}}
 },{minimize:false,timestamps:true},)

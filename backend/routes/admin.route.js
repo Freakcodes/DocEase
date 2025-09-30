@@ -1,7 +1,8 @@
 import express from 'express'
 
-import { addDoctor } from '../controllers/admin.controller.js'
+import { addDoctor } from '../controllers/admin.controller.js';
 
+import upload from '../middlewares/multer.middleware.js';
 const adminRouter=express.Router();
 
 
