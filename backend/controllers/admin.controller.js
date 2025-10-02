@@ -76,7 +76,7 @@ const loginAdmin=async(req,res)=>{
     } catch (error) {
         res.json(
             {
-                success:'false',
+                success:false,
                 message:error.message
             }
         )
