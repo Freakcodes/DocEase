@@ -1,4 +1,7 @@
-import React, { useState } from "react";
+import React, { useState,useContext } from "react";
+import axios from 'axios';
+import { AdminContext } from "../context/AdminContext";
+import { toast } from "react-toastify";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -6,8 +9,27 @@ const Login = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [role, setRole] = useState("admin"); // new state for role
+  
 
-  // const handleLogin = async (e) => { ... }
+  const {setAdminToken,backendUrl}=useContext(AdminContext);
+
+  const handleLogin = async (e) => { 
+      e.preventDefault();
+
+      try {
+        if(role==="admin"){
+          const {data}=await axios.post(backendUrl+'/api/admin/login',{email,password})
+          if(data.success){
+            setAdminToken(data.token);
+            localStorage.setItem('adminToken',data.token);
+          }else{
+            toast.error(data.error);
+          }
+        }
+      } catch (error) {
+          toast.error(error);
+      }
+   }
 
   return (
     <div className="d-flex justify-content-center align-items-center vh-100 bg-light">
@@ -18,7 +40,7 @@ const Login = () => {
 
         {error && <div className="alert alert-danger">{error}</div>}
 
-        <form>
+        <form onSubmit={handleLogin}>
           <div className="mb-3">
             <label className="form-label">Email</label>
             <input
