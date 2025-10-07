@@ -1,0 +1,129 @@
+/* ======== Base Sidebar ======== */
+.sidebar {
+    position: fixed;
+    width: 250px;
+    height: 100vh;
+    background-color: #ffffff;
+    border-right: 1px solid #e0e0e0;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+    padding: 1rem;
+    transition: transform 0.3s ease-in-out;
+    z-index: 1000;
+  }
+  
+  /* Sidebar Header */
+  .sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+  }
+  
+  .sidebar-header h2 {
+    font-size: 1.2rem;
+    color: #0d6efd;
+    font-weight: 700;
+    margin: 0;
+  }
+  
+  /* Sidebar Links */
+  .sidebar-links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .sidebar-links li {
+    margin-bottom: 1rem;
+  }
+  
+  .sidebar-links a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: #333;
+    font-weight: 500;
+    padding: 10px 12px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+  }
+  
+  /* Hover Effect */
+  .sidebar-links a:hover {
+    background-color: #e7f1ff;
+    color: #0d6efd;
+  }
+  
+  /* Active Link */
+  .sidebar-links a.active {
+    background-color: #0d6efd;
+    color: white;
+  }
+  
+  /* Icons */
+  .sidebar-links i {
+    width: 20px;
+    text-align: center;
+  }
+  
+  /* ======== Mobile ======== */
+  .menu-btn {
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    background: #0d6efd;
+    color: white;
+    border: none;
+    padding: 8px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    z-index: 1100;
+  }
+  
+  .close-btn {
+    background: transparent;
+    border: none;
+    font-size: 1.2rem;
+    color: #333;
+    cursor: pointer;
+  }
+  
+  
+  /* Hide sidebar on small screens by default */
+  @media (max-width: 992px) {
+    .sidebar {
+      transform: translateX(-100%);
+    }
+  
+    .sidebar.open {
+      transform: translateX(0);
+    }
+  
+    /* Overlay background */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 900;
+    }
+
+    .margin-top-mobile{
+      margin-top: 70px;
+    }
+  }
+  
+  /* ======== Desktop ======== */
+  @media (min-width: 993px) {
+    .menu-btn,
+    .close-btn,
+    .overlay {
+      display: none;
+    }
+  
+    .sidebar {
+      transform: none;
+    }
+  }
+  

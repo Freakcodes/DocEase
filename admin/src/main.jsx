@@ -5,6 +5,7 @@ import { BrowserRouter } from "react-router-dom";
 import DoctorContextProvider from "./context/DoctorContext.jsx";
 import AdminContextProvider from "./context/AdminContext.jsx";
 import AppContextProvider from "./context/AppContext.jsx";
+import '@fortawesome/fontawesome-free/css/all.min.css';
 createRoot(document.getElementById("root")).render(
   <BrowserRouter>
     <AdminContextProvider>

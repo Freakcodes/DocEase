@@ -1,7 +1,7 @@
 import React, { useState,useContext } from "react";
 import axios from 'axios';
 import { AdminContext } from "../context/AdminContext";
-import { toast } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -22,8 +22,9 @@ const Login = () => {
           if(data.success){
             setAdminToken(data.token);
             localStorage.setItem('adminToken',data.token);
+            
           }else{
-            toast.error(data.error);
+            toast.error(data.message);
           }
         }
       } catch (error) {
@@ -32,6 +33,7 @@ const Login = () => {
    }
 
   return (
+    
     <div className="d-flex justify-content-center align-items-center vh-100 bg-light">
       <div className="card shadow-lg p-4" style={{ width: "400px", borderRadius: "15px" }}>
         <h3 className="text-center mb-4 ">
