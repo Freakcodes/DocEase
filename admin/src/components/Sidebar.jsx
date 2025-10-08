@@ -1,26 +1,34 @@
-import React, { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import React, { useState, useContext, useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import "./Sidebar.css";
-
+import { AdminContext } from "../context/AdminContext";
 const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const { adminToken, setAdminToken } = useContext(AdminContext);
 
+  const navigate = useNavigate();
+  const handleLogout = () => {
+    navigate("/");
+    adminToken && setAdminToken("");
+    adminToken && localStorage.removeItem("adminToken");
+  };
   const toggleSidebar = () => setIsOpen(!isOpen);
+
 
   return (
     <>
       {/* Toggle Button for Mobile */}
-      {
-        !isOpen?(<button className="menu-btn" onClick={toggleSidebar}>
-        <i className="fas fa-bars"></i>
-      </button>):(
-        <>
-        </>
-      )
-      
-      }
-      
+   
+        <div className="sidebar-nav">
+          <div>DocEase</div>
+          <div>
+            <button className="menu-btn" onClick={toggleSidebar}>
+              <i className="fas fa-bars"></i>
+            </button>
+          </div>
+        </div>
+   
 
       {/* Sidebar */}
       <aside className={`sidebar ${isOpen ? "open" : ""}`}>
@@ -35,7 +43,9 @@ const Sidebar = () => {
           <li>
             <Link
               to="/admin-dashboard"
-              className={location.pathname === "/admin-dashboard" ? "active" : ""}
+              className={
+                location.pathname === "/admin-dashboard" ? "active" : ""
+              }
             >
               <i className="fas fa-home"></i> Dashboard
             </Link>
@@ -43,7 +53,9 @@ const Sidebar = () => {
           <li>
             <Link
               to="/all-appointments"
-              className={location.pathname === "/all-appointments" ? "active" : ""}
+              className={
+                location.pathname === "/all-appointments" ? "active" : ""
+              }
             >
               <i className="fas fa-calendar-alt"></i> Appointments
             </Link>
@@ -64,19 +76,19 @@ const Sidebar = () => {
               <i className="fas fa-user-md"></i> Doctors List
             </Link>
           </li>
-          <li>
-            <Link
-              to="/settings"
-              className={location.pathname === "/settings" ? "active" : ""}
+          <li className="text-center ">
+            <button
+              onClick={handleLogout}
+              className="btn btn-primary ms-auto w-100"
             >
-              <i className="fas fa-cog"></i> Settings
-            </Link>
+              Logout
+            </button>
           </li>
         </ul>
       </aside>
 
       {/* Overlay for mobile */}
-      {isOpen && <div onClick={toggleSidebar}></div>}
+      {isOpen && <div onClick={toggleSidebar} className="overlay"></div>}
     </>
   );
 };

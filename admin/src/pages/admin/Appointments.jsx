@@ -2,7 +2,9 @@ import React from 'react'
 
 const Appointments = () => {
   return (
-    <div>Appointments</div>
+    <div className='margin-left-side mt-2'>
+      Appointments
+    </div>
   )
 }
 

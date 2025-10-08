@@ -1,5 +1,6 @@
 /* ======== Base Sidebar ======== */
 .sidebar {
+  top: 0;
     position: fixed;
     width: 250px;
     height: 100vh;
@@ -68,19 +69,7 @@
   }
   
   /* ======== Mobile ======== */
-  .menu-btn {
-    position: fixed;
-    top: 15px;
-    left: 15px;
-    background: #0d6efd;
-    color: white;
-    border: none;
-    padding: 8px 10px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 1.2rem;
-    z-index: 1100;
-  }
+  
   
   .close-btn {
     background: transparent;

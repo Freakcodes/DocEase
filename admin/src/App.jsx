@@ -10,10 +10,10 @@ import { AdminContext } from "./context/AdminContext";
 import Navbar from "./components/Navbar";
 import Sidebar from "./components/Sidebar";
 import { Route, Routes } from "react-router-dom";
-import Dashboard from "../pages/admin/Dashboard";
-import Appointments from "../pages/admin/Appointments";
-import DoctorsList from "../pages/admin/DoctorsList";
-import AddDoctor from "../pages/admin/AddDoctor";
+import Dashboard from "./pages/admin/Dashboard";
+import Appointments from "./pages/admin/Appointments";
+import DoctorsList from "./pages/admin/DoctorsList";
+import AddDoctor from "./pages/admin/AddDoctor";
 function App() {
   const { adminToken } = useContext(AdminContext);
 
@@ -24,7 +24,7 @@ function App() {
 
       <div className="">
         <Sidebar />
-        <Routes>
+        <Routes className="">
           <Route path="/" element={<></>} />
           <Route path="/admin-dashboard" element={<Dashboard />} />
           <Route path="/all-appointments" element={<Appointments />} />
