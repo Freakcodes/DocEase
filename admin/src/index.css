@@ -138,5 +138,43 @@
   }
 }
 
+.specialty-card {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
 
+.specialty-card:hover {
+  transform: translateY(-8px);
+  background-color: #e9f5ff; /* light blue highlight */
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+.no-underline {
+  text-decoration: none;
+  color: inherit; /* optional: keeps parent color */
+}
+
+.doctor-card {
+  
+  width: 250px;
+  height: auto;
+  background:  #97c3e0;
+}
+
+.doctor-card-appointment {
+  margin-top: 10px;
+  border-radius: 20px;
+  width: 300px;
+  height: auto;
+  background:  #97c3e0;
+}
+
+.doctor-card-outer:hover{
+  transform: translateY(-8px);
+ /* lighter blue highlight */
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.doctor-card-outer{
+ transition: all 0.3s ease;
+}
 /* Base container */

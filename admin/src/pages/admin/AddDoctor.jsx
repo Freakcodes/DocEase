@@ -131,6 +131,18 @@ const AddDoctor = () => {
       setLoading(false);
       if (data.success) {
         toast.success(data.message);
+        setAbout('');
+        setAddress1('');
+        setAddress2('');
+        setDocImage('');
+        setEducation('');
+        setEmail('');
+        setExperience('');
+        setFees('');
+        setLoading('');
+        setName('');
+        setPassword('');
+        setSpeciality('');
       } else {
         toast.error(data.message);
         console.log(data.message);
