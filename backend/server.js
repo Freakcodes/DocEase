@@ -20,7 +20,6 @@ app.use(express.json());
         origin:'http://localhost:5174',
     }));
 
-
 //api endpoints
 app.use('/api/admin',adminRouter)
 app.get('/',(req,res)=>{
