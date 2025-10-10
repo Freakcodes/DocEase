@@ -1,8 +1,10 @@
-import React, { use } from "react";
-import { doctors } from "../assets/assets";
+import React, { use, useActionState, useContext } from "react";
+// import { doctors } from "../assets/assets";
 import { Link, useNavigate } from "react-router-dom";
+import { AppContext } from "../context/AppContext";
 const DoctorsToBook = () => {
   const navigate=useNavigate();
+  const {doctors}=useContext(AppContext);
   return (
     <div className="">
       <div className="row text-center mt-5 mb-5">
