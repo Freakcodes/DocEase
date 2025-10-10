@@ -5,7 +5,7 @@ import RelatedDoctors from "../components/RelatedDoctors";
 
 const Appointments = () => {
   const { id } = useParams();
-  const { doctors } = useContext(AppContext);
+  const { doctors,currencySymbol} = useContext(AppContext);
   const [doc, setDoc] = useState({});
   const daysOfWeek = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
   const [slotIndex, setDocSlotIndex] = useState(0);
@@ -54,7 +54,7 @@ const Appointments = () => {
   };
   useEffect(() => {
     findDoc();
-    console.log(doc.image);
+    
   }, [doc, id]);
 
   useEffect(() => {
@@ -83,7 +83,7 @@ const Appointments = () => {
             </p>
             <p>About </p>
             <p>{doc.about}</p>
-            <p>Appointment Fee: ₹{doc.fees}</p>
+            <p>Appointment Fee: {currencySymbol}{doc.fees}</p>
           </div>
 
           <div className="booking-slots mt-2">
