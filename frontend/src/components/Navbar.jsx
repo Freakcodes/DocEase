@@ -1,8 +1,15 @@
-import React from 'react'
+import React, { useContext } from 'react'
 import { Link, NavLink } from 'react-router-dom';
 import { assets } from '../assets/assets';
+import { AppContext } from '../context/AppContext';
 
 const Navbar = () => {
+  const {token,setToken}=useContext(AppContext);
+  
+  const handleLogout=()=>{
+    setToken('');
+    localStorage.removeItem('token');
+  }
   return (
     <nav className="navbar navbar-expand-lg border-bottom bg-light">
       <div className="container">
@@ -37,7 +44,16 @@ const Navbar = () => {
             
           </ul>
           <div>
-            <NavLink className="btn btn-outline-light  btn-primary ms-3" to="/login">Create Account</NavLink>
+            {
+              
+                token?(
+                  <button className='btn btn-primary' onClick={handleLogout}>Logout</button>
+                ):(
+                  <NavLink className="btn btn-outline-light  btn-primary ms-3" to="/login">Create Account</NavLink>
+                )
+              
+            }
+            
           </div>
         </div>
       </div>

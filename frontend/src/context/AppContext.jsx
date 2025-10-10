@@ -5,6 +5,7 @@ import axios from 'axios';
 import { toast } from "react-toastify";
 const AppContextProvider=(props)=>{
     const[doctors,setDoctors]=useState([]);
+    const [token,setToken]=useState(localStorage.getItem('token')?localStorage.getItem('token'):'');
     const backEndUrl=import.meta.env.VITE_BACKEND_URL;
     const getDoctorsData=async()=>{
         try {
@@ -19,13 +20,18 @@ const AppContextProvider=(props)=>{
             toast.error(error.message);
         }
     }
+
+    
     useEffect(()=>{
         getDoctorsData();
     },[])
     const currencySymbol='$'
     const value={
         doctors,
-        currencySymbol
+        currencySymbol,
+        token,
+        setToken,
+        backEndUrl
     }
     
     return(
