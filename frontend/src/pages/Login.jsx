@@ -8,7 +8,7 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const { backEndUrl, token, setToken } = useContext(AppContext);
+  const { backEndUrl, token, setToken,setUser } = useContext(AppContext);
   const navigate = useNavigate();
   const onSubmitHandler = async (e) => {
     e.preventDefault();
@@ -21,6 +21,7 @@ const Login = () => {
         if (data.success) {
           console.log(data.token);
           setToken(data.token);
+          setUser(data.user);
           localStorage.setItem("token", data.token);
           navigate("/");
         } else {
@@ -31,17 +32,21 @@ const Login = () => {
       }
     } else {
       try {
+        
         const { data } = await axios.post(backEndUrl + "/api/user/login", {
           email,
           password
         });
-        
+        console.log(data);
         if (data.success) {
           setToken(data.token);
           console.log(token);
           console.log(data);
-          localStorage.setItem("token", token);
+          setUser(data.user);
+          localStorage.setItem("token", data.token);
           navigate("/");
+        }else{
+          toast.error(data.message);
         }
       } catch (error) {
         toast.error(error.message);
@@ -49,7 +54,7 @@ const Login = () => {
     }
   };
 
-  useEffect(() => {}, []);
+  
 
   return (
     <div className="container d-flex justify-content-center align-items-center vh-100">

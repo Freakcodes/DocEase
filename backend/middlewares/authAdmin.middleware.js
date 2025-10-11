@@ -5,10 +5,10 @@ import jwt from "jsonwebtoken";
 const authAdmin = async (req, res, next) => {
   try {
     //logic to verify token..
-    console.log(req.headers);
+    
     const {admintoken}=req.headers
     if(!admintoken){
-      console.log(admintoken);
+    
         return res.json({
             success:false,
             message:admintoken

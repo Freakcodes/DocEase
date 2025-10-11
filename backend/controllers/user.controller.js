@@ -31,26 +31,35 @@ const registerUser = async (req, res) => {
   const user = await newUser.save();
 
   const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
-  res.json({ success: true, token });
+  res.json({ success: true, token,user });
 };
 const loginUser = async (req, res) => {
   const { email, password } = req.body;
 
   //simple steps
   //check if email exists in the mongoDB
+  try {
+    const user = await userModel.findOne({ email });
 
-  const user = await userModel.findOne({ email });
+    if (!user) {
+      return res.json({ success: false, message: "User does not exist!" });
+    }
 
-  if (!user) {
-    return res.json({ success: false, message: "User does not exist!" });
-  }
-
-  const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch) {
-    return res.json({ success: false, message: "Invalid credentials" });
-  } else {
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
-    return res.json({ success: true, token });
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.json({ success: false, message: "Invalid credentials" });
+    } else {
+      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
+      return res.json({ success: true, token,user });
+    }
+  } catch (error) {
+    return res.json({success:false,error})
   }
 };
-export { registerUser, loginUser };
+
+const userProfile=async(req,res)=>{
+  const user=await userModel.findById(req.userId).select('-password');
+  if(!user)return res.json({success:false,message:'User not found'});
+  res.json({success: true,user})
+}
+export { registerUser, loginUser,userProfile };
