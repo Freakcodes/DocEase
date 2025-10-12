@@ -2,7 +2,7 @@ import userModel from "../models/user.model.js";
 import validator from "validator";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-
+import {v2 as cloudinary} from "cloudinary"
 const registerUser = async (req, res) => {
   const { name, email, password } = req.body;
   console.log(name);
@@ -62,4 +62,23 @@ const userProfile=async(req,res)=>{
   if(!user)return res.json({success:false,message:'User not found'});
   res.json({success: true,user})
 }
-export { registerUser, loginUser,userProfile };
+
+const updateUserProfile=async(req,res)=>{
+  const {name,email,phone,gender,dob,address}=req.body;
+  
+  const imageFile=req.file;
+  if(!name||!phone||!dob||!gender){
+    return res.json({success:false,message:"Data Fields Missing"})
+  }
+  //TODO: basic checks..
+  //upload image to cloudinary..
+  const imageUpload= await cloudinary.uploader.upload(imageFile.path,{resource_type:"image"});
+  const imageUrl=imageUpload.secure_url;
+
+
+  
+  const updatedUser=await userModel.findByIdAndUpdate(req.userId,{name,email,phone,gender,dob,address:JSON.parse(address),image:imageUrl});
+  res.json({success:true,updatedUser});
+  
+}
+export { registerUser, loginUser,userProfile,updateUserProfile };

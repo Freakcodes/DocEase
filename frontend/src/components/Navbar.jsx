@@ -45,8 +45,8 @@ const Navbar = () => {
                 />
                 {showMenu && (
                   <div className="position-absolute end-0 mt-2 bg-white shadow rounded py-2" style={{ minWidth: '150px' }}>
-                    <Link to="/profile" className="dropdown-item px-3 py-2 text-dark text-decoration-none d-block">View Profile</Link>
-                    <Link to="/appointments" className="dropdown-item px-3 py-2 text-dark text-decoration-none d-block">Appointments</Link>
+                    <Link to="/myprofile" className="dropdown-item px-3 py-2 text-dark text-decoration-none d-block" onClick={()=>setShowMenu(!showMenu)}>View Profile</Link>
+                    <Link to="/appointments" className="dropdown-item px-3 py-2 text-dark text-decoration-none d-block" onClick={()=>setShowMenu(!showMenu)}>Appointments</Link>
                     <hr className="my-1" />
                     <button className="dropdown-item px-3 py-2 text-danger border-0 bg-transparent w-100 text-start" onClick={handleLogout}>
                       Logout

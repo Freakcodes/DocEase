@@ -1,26 +1,29 @@
-import React from 'react'
-import { useState } from 'react';
-import { assets } from '../assets/assets';
-const MyProfile = () => {
-  const [isEdit, setIsEdit] = useState(false);
-  
-  const [userData, setUserData] = useState({
-    name: "Edward Vincent",
-    image: `${assets.profile_pic}`, // dummy image
-    email: "richardjameswap@gmail.com",
-    phone: "+1 123 456 7890",
-    address: {
-      line1: "57th Cross, Richmond",
-      line2: "Circle, Church Road, London",
-    },
-    gender: "Male",
-    dob: "2000-01-20",
-  });
+import React, { useContext, useEffect, useState } from "react";
+import { AppContext } from "../context/AppContext";
+import axios from "axios";
+import { toast } from "react-toastify";
 
-  // Handle input change
+const MyProfile = () => {
+  const { user, setUser, backEndUrl, token,getUserProfile } = useContext(AppContext);
+  const [isEdit, setIsEdit] = useState(false);
+  const [userData, setUserData] = useState(null);
+  const [docImage, setDocImage] = useState(null);
+  const [previewImage, setPreviewImage] = useState(null);
+
+  useEffect(() => {
+    if (user && Object.keys(user).length > 0) {
+      setUserData({
+        ...user,
+        address: user.address || { line1: "", line2: "" },
+      });
+      setPreviewImage(user.image || null);
+    }
+  }, [user]);
+
+  if (!userData) return <p>Loading profile...</p>;
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-
     if (name === "line1" || name === "line2") {
       setUserData((prev) => ({
         ...prev,
@@ -34,19 +37,74 @@ const MyProfile = () => {
     }
   };
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    setDocImage(file);
+    setPreviewImage(URL.createObjectURL(file));
+  };
+
+  const handleSave = async () => {
+    if (!isEdit) return;
+
+    try {
+      const formData = new FormData();
+      formData.append("name", userData.name);
+      formData.append("email", userData.email);
+      formData.append("phone", userData.phone);
+      formData.append("gender", userData.gender);
+      formData.append("dob", userData.dob);
+      formData.append(
+        "address",
+        JSON.stringify({
+          line1: userData.address.line1,
+          line2: userData.address.line2,
+        })
+      );
+      console.log(formData);
+      if (docImage) formData.append("image", docImage);
+
+      const { data } = await axios.post(
+        backEndUrl + "/api/user/update-profile",
+        formData,
+        {
+          headers: {
+            usertoken: token,
+          },
+        }
+      );
+
+      if (data.success) {
+        toast.success("Profile Updated");
+        await getUserProfile()
+        setIsEdit(false); // close edit mode
+      } else {
+        toast.error(data.message || "Failed to update profile");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error(err.message || "Error updating profile");
+    }
+  };
+
   return (
     <div className="container mt-5">
       <div className="card shadow p-4">
         <div className="row align-items-center">
           <div className="col-md-3 text-center">
             <img
-              src={userData.image}
+              src={previewImage || "/default-profile.png"}
               alt="profile"
               className="img-fluid rounded-circle mb-3"
             />
+            {isEdit && (
+              <input type="file" name="image" onChange={handleFileChange} />
+            )}
             <button
-              className="btn btn-primary btn-sm"
-              onClick={() => setIsEdit(!isEdit)}
+              className="btn btn-primary btn-sm mt-2"
+              onClick={() => {
+                setIsEdit(true);
+                handleSave();
+              }}
             >
               {isEdit ? "Save" : "Edit Profile"}
             </button>
@@ -85,6 +143,7 @@ const MyProfile = () => {
               </div>
             </div>
 
+            {/* Phone & Gender */}
             <div className="row mb-2">
               <div className="col-md-6">
                 <label className="fw-bold">Phone:</label>
@@ -120,6 +179,7 @@ const MyProfile = () => {
               </div>
             </div>
 
+            {/* DOB */}
             <div className="row mb-2">
               <div className="col-md-6">
                 <label className="fw-bold">DOB:</label>
@@ -137,6 +197,7 @@ const MyProfile = () => {
               </div>
             </div>
 
+            {/* Address */}
             <div className="row mb-2">
               <div className="col-12">
                 <label className="fw-bold">Address:</label>
@@ -171,4 +232,4 @@ const MyProfile = () => {
   );
 };
 
-export default MyProfile
+export default MyProfile;
