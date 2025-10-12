@@ -72,13 +72,17 @@ const updateUserProfile=async(req,res)=>{
   }
   //TODO: basic checks..
   //upload image to cloudinary..
-  const imageUpload= await cloudinary.uploader.upload(imageFile.path,{resource_type:"image"});
-  const imageUrl=imageUpload.secure_url;
+  
 
 
   
-  const updatedUser=await userModel.findByIdAndUpdate(req.userId,{name,email,phone,gender,dob,address:JSON.parse(address),image:imageUrl});
-  res.json({success:true,updatedUser});
+  const updatedUser=await userModel.findByIdAndUpdate(req.userId,{name,email,phone,gender,dob,address:JSON.parse(address)});
+  if(imageFile){
+    const imageUpload= await cloudinary.uploader.upload(imageFile.path,{resource_type:"image"});
+    const imageUrl=imageUpload.secure_url;
+    await userModel.findByIdAndUpdate(req.userId,{image:imageUrl})
+  }
+  res.json({success:true,message:"Profile Updated"});
   
 }
 export { registerUser, loginUser,userProfile,updateUserProfile };

@@ -18,6 +18,7 @@ const MyProfile = () => {
       });
       setPreviewImage(user.image || null);
     }
+   
   }, [user]);
 
   if (!userData) return <p>Loading profile...</p>;
@@ -61,8 +62,7 @@ const MyProfile = () => {
         })
       );
       console.log(formData);
-      if (docImage) formData.append("image", docImage);
-
+      if (docImage) formData.append("image",docImage);
       const { data } = await axios.post(
         backEndUrl + "/api/user/update-profile",
         formData,
@@ -74,7 +74,7 @@ const MyProfile = () => {
       );
 
       if (data.success) {
-        toast.success("Profile Updated");
+        toast.success(data.message);
         await getUserProfile()
         setIsEdit(false); // close edit mode
       } else {
@@ -92,12 +92,12 @@ const MyProfile = () => {
         <div className="row align-items-center">
           <div className="col-md-3 text-center">
             <img
-              src={previewImage || "/default-profile.png"}
+              src={previewImage || ""}
               alt="profile"
               className="img-fluid rounded-circle mb-3"
             />
             {isEdit && (
-              <input type="file" name="image" onChange={handleFileChange} />
+              <input type="file" name="image"  onChange={handleFileChange} />
             )}
             <button
               className="btn btn-primary btn-sm mt-2"
