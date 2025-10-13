@@ -2,9 +2,12 @@ import React, { useContext, useEffect, useState } from "react";
 import { AppContext } from "../context/AppContext";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { useNavigate } from "react-router-dom";
 
 const MyProfile = () => {
-  const { user, setUser, backEndUrl, token,getUserProfile } = useContext(AppContext);
+  const { user, setUser, backEndUrl, token, getUserProfile } =
+    useContext(AppContext);
+  const navigate = useNavigate();
   const [isEdit, setIsEdit] = useState(false);
   const [userData, setUserData] = useState(null);
   const [docImage, setDocImage] = useState(null);
@@ -18,9 +21,11 @@ const MyProfile = () => {
       });
       setPreviewImage(user.image || null);
     }
-   
   }, [user]);
-
+  if (!token) {
+    toast.warn("You need to login first");
+    return navigate("/login");
+  }
   if (!userData) return <p>Loading profile...</p>;
 
   const handleChange = (e) => {
@@ -62,7 +67,7 @@ const MyProfile = () => {
         })
       );
       console.log(formData);
-      if (docImage) formData.append("image",docImage);
+      if (docImage) formData.append("image", docImage);
       const { data } = await axios.post(
         backEndUrl + "/api/user/update-profile",
         formData,
@@ -75,7 +80,7 @@ const MyProfile = () => {
 
       if (data.success) {
         toast.success(data.message);
-        await getUserProfile()
+        await getUserProfile();
         setIsEdit(false); // close edit mode
       } else {
         toast.error(data.message || "Failed to update profile");
@@ -97,13 +102,16 @@ const MyProfile = () => {
               className="img-fluid rounded-circle mb-3"
             />
             {isEdit && (
-              <input type="file" name="image"  onChange={handleFileChange} />
+              <input type="file" name="image" onChange={handleFileChange} />
             )}
             <button
               className="btn btn-primary btn-sm mt-2"
               onClick={() => {
-                setIsEdit(true);
-                handleSave();
+                if (isEdit) {
+                  handleSave();
+                } else {
+                  setIsEdit(true);
+                }
               }}
             >
               {isEdit ? "Save" : "Edit Profile"}
