@@ -5,11 +5,27 @@ export const AdminContext = createContext();
 const AdminContextProvider = (props) => {
   const [adminToken,setAdminToken]=useState(localStorage.getItem('adminToken')?localStorage.getItem('adminToken'):'');
   const [doctor,setDoctor]=useState([]);
+  const [appointments,setAppointments]=useState([]);
   const backendUrl=import.meta.env.VITE_BACKEND_URL;
 
   const getAllDoctors=async()=>{
     const {data}=await axios.get(backendUrl+`/api/admin/all-doctors`);
     setDoctor(data.doctors);
+  }
+
+  const getAllAppointments=async()=>{
+    try {
+      const {data}=await axios.get(backendUrl+'/api/admin/appointments',{headers:{admintoken:adminToken}});
+      if(data.success){
+        setAppointments(data.appointments);
+      }else{
+        toast.error(data.message);
+      }
+      
+    } catch (error) {
+        toast.error(error.message);
+    }
+    
   }
 
   const changeAvailability=async(docId)=>{
@@ -22,7 +38,7 @@ const AdminContextProvider = (props) => {
     }
   }
   const value = {
-    adminToken,setAdminToken,backendUrl,getAllDoctors,doctor,changeAvailability
+    adminToken,setAdminToken,backendUrl,getAllDoctors,doctor,changeAvailability,getAllAppointments,appointments
   };
   return (
   <AdminContext.Provider value={value}>
