@@ -1,20 +1,39 @@
 import React, { useContext, useEffect } from "react";
 import { AdminContext } from "../../context/AdminContext";
+import axios from "axios";
+import { toast } from "react-toastify";
 
 const Appointments = () => {
-  const { getAllAppointments, appointments, adminToken } =
+  const { getAllAppointments, appointments, adminToken, backendUrl } =
     useContext(AdminContext);
 
   useEffect(() => {
     if (adminToken) getAllAppointments();
   }, [adminToken]);
-
+  const handleCancel = async (appointment) => {
+    
+    try {
+      const { data } = await axios.post(
+        backendUrl + "/api/admin/cancel-appointment",
+        {appointmentId:appointment._id},
+        { headers: { admintoken: adminToken } },
+        
+      );
+      if (data.success) {
+        toast.success("Appointment Cancelled");
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
   const getAge = (dob) => {
     console.log(dob);
     if (!dob) return "-";
     const birth = new Date(dob);
-    let modi= new Date().getFullYear() - birth.getFullYear();
-   return modi;
+    let modi = new Date().getFullYear() - birth.getFullYear();
+    return modi;
   };
 
   return (
@@ -46,7 +65,10 @@ const Appointments = () => {
               <th scope="col" className="fw-semibold text-secondary">
                 Fees
               </th>
-              <th scope="col" className="text-center fw-semibold text-secondary">
+              <th
+                scope="col"
+                className="text-center fw-semibold text-secondary"
+              >
                 Action
               </th>
             </tr>
@@ -81,9 +103,7 @@ const Appointments = () => {
                       </div>
                     </td>
 
-                    <td className="py-3">
-                      {doc?.speciality || "General"}
-                    </td>
+                    <td className="py-3">{doc?.speciality || "General"}</td>
                     <td className="py-3">{getAge(user?.dob)}</td>
                     <td className="py-3 text-muted">
                       {apt.slotDate}, {apt.slotTime}
@@ -112,25 +132,18 @@ const Appointments = () => {
 
                     {/* Cancel Button */}
                     <td className="py-3 text-center">
-                      {
-                        apt.cancelled?
-                        (
-                          <div className="text-danger">
-                            Cancelled
-                          </div>
-                        )
-                        :(
-                          <button
-                        className="btn btn-sm btn-outline-danger rounded-circle d-flex align-items-center justify-content-center mx-auto"
-                        style={{ width: "32px", height: "32px" }}
-                        title="Cancel Appointment"
-                        // onClick={() => handleCancel(apt)}
-                      >
-                        <i className="fas fa-times"></i>
-                      </button>
-                        )
-                      }
-                      
+                      {apt.cancelled ? (
+                        <div className="text-danger">Cancelled</div>
+                      ) : (
+                        <button
+                          className="btn btn-sm btn-outline-danger rounded-circle d-flex align-items-center justify-content-center mx-auto"
+                          style={{ width: "32px", height: "32px" }}
+                          title="Cancel Appointment"
+                          onClick={() => handleCancel(apt)}
+                        >
+                          <i className="fas fa-times"></i>
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );

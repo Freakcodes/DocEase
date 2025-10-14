@@ -23,7 +23,7 @@ const authAdmin = async (req, res, next) => {
             message:'Not authorized Login Again'
         })
     }
-
+    
     next();
   } catch (error) {
     res.json({
