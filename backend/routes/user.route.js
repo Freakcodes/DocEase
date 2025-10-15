@@ -12,6 +12,7 @@ userRouter.use('/book-appointment',authUser,bookAppointment);
 userRouter.use('/list-appointments',authUser,listAllAppointments);
 userRouter.use('/cancel-appointments',authUser,cancelAppointments);
 userRouter.use('/payment-razorpay',authUser,paymentRazorpay);
-userRouter.use('/verifyRazorpay',authUser,verifyRazorPay)
+userRouter.use('/verifyRazorpay',authUser,verifyRazorPay);
+
 
 export default userRouter

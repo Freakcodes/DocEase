@@ -20,8 +20,8 @@ const Sidebar = () => {
     <>
       {/* Toggle Button for Mobile */}
    
-        <div className="sidebar-nav">
-          <div>DocEase</div>
+        <div className="sidebar-nav ml-2">
+          <div className="fw-bold fs-3 my-3 ">Doc<span className="text-primary">Ease</span></div>
           <div>
             <button className="menu-btn" onClick={toggleSidebar}>
               <i className="fas fa-bars"></i>
