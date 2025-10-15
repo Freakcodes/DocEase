@@ -6,7 +6,7 @@ import { toast } from "react-toastify";
 const Appointments = () => {
   const { getAllAppointments, appointments, adminToken, backendUrl } =
     useContext(AdminContext);
-
+    
   useEffect(() => {
     if (adminToken) getAllAppointments();
   }, [adminToken]);
@@ -75,7 +75,10 @@ const Appointments = () => {
           </thead>
 
           <tbody>
-            {appointments && appointments.length > 0 ? (
+           
+            {
+            
+            appointments && appointments.length > 0 ? (
               appointments.map((apt, index) => {
                 const user = apt.userData;
                 const doc = apt.docData;

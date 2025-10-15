@@ -32,6 +32,7 @@ const Login = () => {
           if(data.success){
             setDoctortoken(data.token);
             localStorage.setItem('doctortoken',data.token);
+            toast.success('Logged In successfully')
           }else{
             toast.error(data.message);
           }
