@@ -2,6 +2,7 @@ import doctorModel from "../models/doctor.model.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import appointmentModel from "../models/appointment.model.js";
+import {v2 as cloudinary} from "cloudinary"
 
 const toggleAvailability = async (req, res) => {
   try {
@@ -164,9 +165,72 @@ const getDoctorProfile = async (req, res) => {
     });
   } catch (error) {
     return res.json({
-      success:false,
-      message:error.message
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+//api to update the doctor profile data
+
+const updateDoctorProfile = async (req, res) => {
+  try {
+    const docId = req.doctorId;
+    const imageFile=req.file;
+    const {
+      name,
+      email,
+      speciality,
+      degree,
+      experience,
+      fees,
+      about,
+      address,
+    } = req.body;
+    if (
+      !name ||
+      !email ||
+      !speciality ||
+      !degree ||
+      !experience ||
+      !fees ||
+      !about ||
+      !address
+    ) {
+      return res.json({
+        success: false,
+        message: "Data Fields Missing",
+      });
+    }
+
+    const updatedDoctor=await doctorModel.findByIdAndUpdate(docId,{
+      name,
+      email,
+      speciality,
+      degree,
+      experience,
+      fees,
+      about,
+      address:JSON.parse(address)
     })
+
+    //update image
+    if(imageFile){
+      const imageUpload=await cloudinary.uploader.upload(imageFile.path,{
+        resource_type: "image",
+      });
+      const imageUrl=imageUpload.secure_url;
+      await doctorModel.findByIdAndUpdate(docId,{image:imageUrl});
+
+      return res.json({
+        success:true,
+      })
+    }
+  } catch (error) {
+    res.json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 export {
@@ -176,5 +240,6 @@ export {
   getAppointments,
   markCompleteAppointment,
   dashboardData,
-  getDoctorProfile
+  getDoctorProfile,
+  updateDoctorProfile
 };
