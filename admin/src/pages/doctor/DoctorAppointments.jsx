@@ -32,7 +32,7 @@ const DoctorAppointments = () => {
   }, [doctortoken]);
   useEffect(() => {
     if (appointments && appointments.length > 0) {
-      setFilteredAppointments(appointments.filter(apt => apt.cancelled));
+      setFilteredAppointments(appointments.filter(apt => !apt.cancelled));
     }
   }, [appointments]);
  
@@ -80,7 +80,7 @@ const DoctorAppointments = () => {
 
           <tbody>
             {filteredAppointments && filteredAppointments.length > 0 ? (
-              appointments.map((apt, index) => {
+              filteredAppointments.map((apt, index) => {
                 const user = apt.userData;
                 const doc = apt.docData;
 
@@ -107,12 +107,12 @@ const DoctorAppointments = () => {
                           </span>
                         </div>
                       </td>
-
+                      <td className="py-3">{getAge(user?.dob)}</td>
                       <td className="py-3 text-muted">
                         {apt.slotDate}, {apt.slotTime}
                       </td>
 
-                      <td className="py-3">{getAge(user?.dob)}</td>
+                      
 
                       <td className="py-3 text-dark fw-semibold">
                         ${doc?.fees || 0}
@@ -121,7 +121,10 @@ const DoctorAppointments = () => {
                       {/* Cancel Button */}
                       <td className="py-3 text-center">
                         {apt.isCompleted ? (
-                          <div className="text-success">Completed</div>
+                          <span className="badge bg-success bg-opacity-10 text-success px-3 py-2">
+                          <i className="fas fa-check-circle me-1"></i>
+                          Completed
+                        </span>
                         ) : (
                           <button
                             className="btn btn-sm btn-outline-success rounded-circle d-flex align-items-center justify-content-center mx-auto"

@@ -11,6 +11,8 @@ const DoctorContextProvider = (props) => {
       : null
   );
   const [appointments, setAppointments] = useState();
+  const [dashData,setDashData]=useState([]);
+  const [doctorData,setDoctorData]=useState([]);
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
   const getAppointments = async () => {
     try {
@@ -21,6 +23,7 @@ const DoctorContextProvider = (props) => {
       if (data.success) {
         
         setAppointments(data.appointments);
+        
       } else {
         toast.error(data.message);
       }
@@ -29,13 +32,47 @@ const DoctorContextProvider = (props) => {
         toast.error(error.message);
     }
   };
+
+  const getDashboardData=async()=>{
+    try {
+      const {data}=await axios.get(backendUrl+'/api/doctor/dashboard',{headers:{doctortoken:doctortoken}});
+    if(data.success){
+      setDashData(data.dashData);
+      console.log(data.dashData);
+    }else{
+      toast.error(data.message);
+
+    }
+    console.log(data);
+    } catch (error) {
+      toast.error(error.message);
+    }
+    
+  }
+
+  const getDoctorData=async()=>{
+    try {
+      const {data}=await axios.get(backendUrl+'/api/doctor/profile',{headers:{doctortoken:doctortoken}});
+      if(data.success){
+        setDoctorData(data.doctor);
+      }else{
+        toast.error(data.message);
+      }
+    } catch (error) {
+      toast.error(error.message);
+    }
+  }
   const value = {
     doctortoken,
     setDoctortoken,
     setAppointments,
     getAppointments,
     appointments,
-    backendUrl
+    backendUrl,
+    getDashboardData,
+    dashData,
+    getDoctorData,
+    doctorData
   };
 
 

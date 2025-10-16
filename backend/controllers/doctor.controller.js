@@ -2,7 +2,7 @@ import doctorModel from "../models/doctor.model.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import appointmentModel from "../models/appointment.model.js";
-import userModel from "../models/user.model.js";
+
 const toggleAvailability = async (req, res) => {
   try {
     const { docId } = req.body;
@@ -83,11 +83,11 @@ const getAppointments = async (req, res) => {
 //api to mark appointment completed
 const markCompleteAppointment = async (req, res) => {
   try {
-    const  docId  = req.doctorId;
+    const docId = req.doctorId;
     const { appointmentId } = req.body;
-    
+
     const appointmentData = await appointmentModel.findById(appointmentId);
-    
+
     if (appointmentData && appointmentData.docId === docId) {
       await appointmentModel.findByIdAndUpdate(appointmentId, {
         isCompleted: true,
@@ -109,4 +109,72 @@ const markCompleteAppointment = async (req, res) => {
     });
   }
 };
-export { toggleAvailability, listAllDoctors, doctorLogin, getAppointments,markCompleteAppointment };
+
+//api to get the dashboard data
+
+const dashboardData = async (req, res) => {
+  try {
+    const docId = req.doctorId;
+    console.log(docId);
+    const appointments = await appointmentModel.find({ docId });
+    console.log(appointments);
+    //caculate total earnings..
+    let earnings = 0;
+    appointments.map((apt) => {
+      if (apt.isCompleted && apt.payment) {
+        earnings += apt.amount;
+      }
+    });
+
+    let patients = [];
+    appointments.map((apt) => {
+      if (!patients.includes(apt.userId)) {
+        patients.push(apt.userId);
+      }
+    });
+
+    const dashData = {
+      earnings,
+      appointments: appointments.length,
+      patients: patients.length,
+      latestAppointments: appointments.reverse().slice(0, 5),
+    };
+    res.json({
+      success: true,
+      dashData,
+    });
+  } catch (error) {
+    return res.json({
+      success: false,
+      data: error.message,
+    });
+  }
+};
+
+//api to get the doctor profile data
+
+const getDoctorProfile = async (req, res) => {
+  try {
+    const docId = req.doctorId;
+    const doctor = await doctorModel.findById(docId).select("-password");
+
+    return res.json({
+      success: true,
+      doctor,
+    });
+  } catch (error) {
+    return res.json({
+      success:false,
+      message:error.message
+    })
+  }
+};
+export {
+  toggleAvailability,
+  listAllDoctors,
+  doctorLogin,
+  getAppointments,
+  markCompleteAppointment,
+  dashboardData,
+  getDoctorProfile
+};

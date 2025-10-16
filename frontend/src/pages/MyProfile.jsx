@@ -66,7 +66,7 @@ const MyProfile = () => {
           line2: userData.address.line2,
         })
       );
-      console.log(formData);
+    
       if (docImage) formData.append("image", docImage);
       const { data } = await axios.post(
         backEndUrl + "/api/user/update-profile",
