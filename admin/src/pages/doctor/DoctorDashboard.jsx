@@ -1,9 +1,10 @@
 import React, { useContext, useEffect } from "react";
 import { DoctorContext } from "../../context/DoctorContext";
 // import { dashboardData } from "../../../../backend/controllers/doctor.controller";
-
+import { toast } from "react-toastify";
+import axios from "axios";
 const DoctorDashboard = () => {
-  const { dashData, doctortoken, getDashboardData } = useContext(DoctorContext);
+  const { dashData, doctortoken, getDashboardData,backendUrl } = useContext(DoctorContext);
 
   useEffect(() => {
     if (doctortoken) getDashboardData();
@@ -27,6 +28,7 @@ const DoctorDashboard = () => {
       );
       if (data.success) {
         toast.success(data.message);
+        getDashboardData();
       } else {
         toast.error(data.message);
       }
