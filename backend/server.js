@@ -20,7 +20,7 @@ connectCloudinary();
 app.use(express.json());
 app.use(
   cors({
-    origin: ["https://doc-ease-eta.vercel.app","http://localhost:5173"],
+    origin: ["https://doc-ease-eta.vercel.app","http://localhost:5173","https://doc-ease-admin.vercel.app","http://localhost:5173"],
     credentials:true,
   })
 );
