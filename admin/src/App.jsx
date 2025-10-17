@@ -35,7 +35,7 @@ function App() {
             <Route path="/doctor-list" element={<DoctorsList />} />
           </Routes>
         ):
-         <Routes className="">
+         doctortoken && <Routes className="">
             <Route path="/" element={<></>} />
             <Route path="/dashboard" element={<DoctorDashboard/>} />
             <Route path="/appointments" element={<DoctorAppointments/>} />

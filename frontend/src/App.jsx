@@ -1,7 +1,7 @@
-import React from 'react'
+import React, { useContext } from 'react'
 import "react-toastify/dist/ReactToastify.css";
 import {ToastContainer} from 'react-toastify';
-import {Route, Routes} from 'react-router-dom'
+import {Route, Routes,Navigate} from 'react-router-dom'
 import Navbar from './components/Navbar'
 import Home from './pages/Home'
 import About from './pages/About'
@@ -12,7 +12,9 @@ import Doctors from './pages/Doctors'
 import MyAppointments from './pages/MyAppointments'
 import Footer from './components/Footer'
 import MyProfile from './pages/MyProfile'
+import { AppContext } from './context/AppContext';
 const App = () => {
+  const {token}=useContext(AppContext);
   return (
     <div className="container">
       <ToastContainer/>
@@ -25,8 +27,15 @@ const App = () => {
         <Route path='/appointments/:id' element={<Appointments/>}/>
         <Route path='/doctors' element={<Doctors/>}/>
         <Route path='/doctors/:speciality' element={<Doctors/>}/>
-        <Route path='/appointments' element={<MyAppointments/>}/>
-        <Route path='/myprofile' element={<MyProfile/>}/>
+        <Route 
+          path='/appointments' 
+          element={token ? <MyAppointments /> : <Navigate to="/login" />} 
+        />
+        <Route 
+          path='/myprofile' 
+          element={token ? <MyProfile /> : <Navigate to="/login" />} 
+        />
+        
       </Routes>
       <Footer/>
     </div>

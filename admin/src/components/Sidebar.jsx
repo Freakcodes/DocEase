@@ -7,19 +7,21 @@ const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const { adminToken, setAdminToken } = useContext(AdminContext);
-  const {doctortoken,setDoctorToken}=useContext(DoctorContext);
+  const {doctortoken,setDoctortoken}=useContext(DoctorContext);
   const navigate = useNavigate();
   const handleLogout = () => {
     
     if(adminToken){
       adminToken && setAdminToken("");
       adminToken && localStorage.removeItem("adminToken");
+      navigate("/");
     }else{
-      doctortoken && setDoctorToken("");
+      doctortoken && setDoctortoken("");
       doctortoken && localStorage.removeItem("doctortoken")
+      navigate("/")
     }
-   
-    navigate("/");
+    
+    
   };
   const toggleSidebar = () => setIsOpen(!isOpen);
 
