@@ -7,7 +7,7 @@ import Shimmer from "../components/Shimmer";
 
 const MyAppointments = () => {
   const { token, backEndUrl, getDoctorsData } = useContext(AppContext);
-  const [appointments, setAppointments] = useState();
+  const [appointments, setAppointments] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const navigate = useNavigate();
