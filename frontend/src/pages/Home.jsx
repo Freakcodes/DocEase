@@ -1,4 +1,5 @@
 
+import { useNavigate } from "react-router-dom";
 import { assets } from "../assets/assets";
 import CTASection from "../components/CTASection";
 import DoctorsToBook from "../components/DoctorsToBook";
@@ -6,6 +7,8 @@ import SpecialtySection from "../components/SpecialtySection";
 import Doctors from "./Doctors";
 
 const Home = () => {
+
+  const navigate=useNavigate();
   return (
     <div className="container">
     <div className="row bg-primary text-white d-flex   mt-2 rounded ">
@@ -33,7 +36,7 @@ const Home = () => {
         <div className="row">
           <div className="col-lg-12 align-items-center d-flex justify-content-center">
             <div className="text-start">
-              <button className="btn bg-gray bg-dark text-light ">Book Your Appointment </button>
+              <button className="btn bg-gray bg-dark text-light " onClick={()=>navigate('/doctors')}>Book Your Appointment </button>
             </div>
           </div>
         </div>

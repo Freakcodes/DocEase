@@ -1,8 +1,9 @@
 import React from 'react'
 import { assets } from '../assets/assets'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 const CTASection = () => {
+  const navigate=useNavigate();
   return (
      <div className=" my-5" mt-3>
       <div className="row bg-primary text-white rounded align-items-center p-2">
@@ -12,7 +13,7 @@ const CTASection = () => {
           <h2 className="fw-bold mb-4">
             Book Appointment <br /> With 100+ Trusted Doctors
           </h2>
-          <Link className="btn btn-light rounded-pill px-4 py-2 underline">
+          <Link className="btn btn-light rounded-pill px-4 py-2 underline" to='/login' onClick={()=>scrollTo(0,0)}>
             Create account
           </Link>
         </div>

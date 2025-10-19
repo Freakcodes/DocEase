@@ -3,6 +3,7 @@ import { AppContext } from "../context/AppContext";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
+import Shimmer from "../components/Shimmer";
 
 const MyAppointments = () => {
   const { token, backEndUrl, getDoctorsData } = useContext(AppContext);
@@ -10,7 +11,7 @@ const MyAppointments = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const navigate = useNavigate();
-
+  const isLoading=appointments.length===0 || !appointments
   const getAppointedDoctors = async () => {
     const { data } = await axios.get(backEndUrl + "/api/user/list-appointments", {
       headers: { usertoken: token },
@@ -94,7 +95,7 @@ const MyAppointments = () => {
       </h2>
 
       <div className="row g-4">
-        {appointments &&
+        {isLoading?<Shimmer/>:
           appointments.map((appointment, index) => (
             <div key={index} className="col-md-6 col-lg-4">
               <div className="card border-0 shadow-lg rounded-4 overflow-hidden h-100 appointment-card">

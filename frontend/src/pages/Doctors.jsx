@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { AppContext } from "../context/AppContext";
-
+import Shimmer from "../components/Shimmer";
 const Doctors = () => {
   const navigate = useNavigate();
   const { speciality } = useParams();
@@ -39,18 +39,7 @@ const Doctors = () => {
     "pediatrician",
     "dentist",
   ];
-  const shimmerCards = Array.from({ length: 3 }).map((_, index) => (
-    <div
-      className="col-lg-3 col-12 mb-4"
-      key={index}
-    >
-      <div className="border doctor-card-outer p-3 rounded shadow-sm h-100 d-flex flex-column align-items-center">
-        <div className="shimmer-img rounded mb-3"></div>
-        <div className="shimmer-line w-75 mb-2"></div>
-        <div className="shimmer-line w-50"></div>
-      </div>
-    </div>
-  ));
+  
   return (
     <div className="container py-4">
       {/* Filter Toggle Button (visible on mobile) */}
@@ -110,7 +99,7 @@ const Doctors = () => {
           <div className="row g-3">
             {
             
-            isLoading ?shimmerCards:
+            isLoading ?<Shimmer length={3}/>:
 
             filterDoc.length > 0 ? (
               filterDoc.slice(0, 8).map((doc, index) => (

@@ -1,25 +1,13 @@
 import React, { useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AppContext } from "../context/AppContext";
-
+import Shimmer from "./Shimmer";
 const DoctorsToBook = () => {
   const navigate = useNavigate();
   const { doctors } = useContext(AppContext);
   const isLoading = !doctors || doctors.length === 0; // simple loading check
 
-//Shimmer for 8 Cards..  
-  const shimmerCards = Array.from({ length: 8 }).map((_, index) => (
-    <div
-      className="col-lg-3 col-12 mb-4"
-      key={index}
-    >
-      <div className="border doctor-card-outer p-3 rounded shadow-sm h-100 d-flex flex-column align-items-center">
-        <div className="shimmer-img rounded mb-3"></div>
-        <div className="shimmer-line w-75 mb-2"></div>
-        <div className="shimmer-line w-50"></div>
-      </div>
-    </div>
-  ));
+
 
   return (
     <div>
@@ -32,7 +20,7 @@ const DoctorsToBook = () => {
 
       <div className="row text-center">
         {isLoading
-          ? shimmerCards
+          ? <Shimmer length={8}/>
           : doctors.slice(0, 8).map((doctor, index) => (
               <Link
                 to={`appointments/${doctor._id}`}
