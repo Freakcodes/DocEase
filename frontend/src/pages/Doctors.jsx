@@ -8,7 +8,7 @@ const Doctors = () => {
   const { doctors } = useContext(AppContext);
   const [filterDoc, setFilterDoc] = useState([...doctors]);
   const [showFilters, setShowFilters] = useState(false);
-
+  const isLoading=!filterDoc || filterDoc.length===0;
   const applyFilter = () => {
     if (speciality) {
       setFilterDoc(
@@ -39,7 +39,18 @@ const Doctors = () => {
     "pediatrician",
     "dentist",
   ];
-
+  const shimmerCards = Array.from({ length: 3 }).map((_, index) => (
+    <div
+      className="col-lg-3 col-12 mb-4"
+      key={index}
+    >
+      <div className="border doctor-card-outer p-3 rounded shadow-sm h-100 d-flex flex-column align-items-center">
+        <div className="shimmer-img rounded mb-3"></div>
+        <div className="shimmer-line w-75 mb-2"></div>
+        <div className="shimmer-line w-50"></div>
+      </div>
+    </div>
+  ));
   return (
     <div className="container py-4">
       {/* Filter Toggle Button (visible on mobile) */}
@@ -97,7 +108,11 @@ const Doctors = () => {
         {/* Main Content */}
         <div className="col-lg-9">
           <div className="row g-3">
-            {filterDoc.length > 0 ? (
+            {
+            
+            isLoading ?shimmerCards:
+
+            filterDoc.length > 0 ? (
               filterDoc.slice(0, 8).map((doc, index) => (
                 <div
                   className="col-12 col-sm-6 col-md-4"
