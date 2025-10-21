@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useState } from "react";
 import { AdminContext } from "../../context/AdminContext";
 import axios from "axios";
 import { toast } from "react-toastify";
-import "./Shimmer.css"; // ← add shimmer styles here
+
 
 const Appointments = () => {
   const { getAllAppointments, appointments, adminToken, backendUrl } =
