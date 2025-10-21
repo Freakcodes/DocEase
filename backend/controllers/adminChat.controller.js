@@ -570,7 +570,7 @@ export const testGeminiConnection = async (req, res) => {
       message: "Gemini connection successful",
       response: response.text,
       model: "gemini-1.5-flash"
-      "
+      
     });
   } catch (error) {
     console.error("Gemini test error:", error);
