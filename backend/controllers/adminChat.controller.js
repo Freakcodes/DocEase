@@ -27,6 +27,31 @@ const schemaInfo = {
   }
 };
 
+// Web app information
+const webAppInfo = `
+This is a Healthcare Management System that helps manage doctors, patients, and appointments. Key features include:
+
+📋 Core Features:
+- Doctor Management: Add, view, and manage doctor profiles with specialties, fees, and availability
+- Patient Management: Register and manage patient information
+- Appointment Booking: Schedule appointments between patients and doctors
+- Availability Tracking: Monitor doctor availability and time slots
+- Revenue Analytics: Track earnings and financial metrics
+- Statistics Dashboard: View comprehensive stats about doctors, patients, and appointments
+
+👥 User Roles:
+- Admin: Full system access, can manage doctors and view all analytics
+- Doctors: Manage their profiles, view appointments, and update availability
+- Patients: Book appointments, view their appointment history
+
+💡 What I Can Help You With:
+- Query database information (e.g., "Show me all cardiologists")
+- Generate statistics and reports (e.g., "How many appointments today?")
+- Find specific data (e.g., "Which doctor has the most patients?")
+- Analyze revenue and financial data
+- Answer questions about doctors, appointments, and patients
+`;
+
 // Predefined database query functions
 const databaseFunctions = {
   getDoctorsWithMostPatients: async () => {
@@ -369,9 +394,12 @@ const executeDynamicQuery = async (queryData) => {
 
 // Function to determine which approach to use
 const analyzeQueryAndExecute = async (userQuery) => {
-  const prompt = `You are a query router. Determine if this query matches a predefined function or needs a custom query.
+  const prompt = `You are an intelligent query router for a Healthcare Management System. Analyze the user's message and determine the appropriate response type.
 
-Available predefined functions:
+Web Application Context:
+${webAppInfo}
+
+Available predefined database functions:
 1. getDoctorsWithMostPatients - doctors with most patients/appointments
 2. getTotalStatistics - overall statistics (totals, counts)
 3. getDoctorsBySpeciality - doctors grouped by or filtered by speciality
@@ -381,26 +409,55 @@ Available predefined functions:
 7. getCancelledAppointments - cancelled appointments
 8. getDoctorsByExperience - doctors sorted by experience
 
-User Query: "${userQuery}"
+User Message: "${userQuery}"
 
-Respond ONLY with valid JSON:
+Respond ONLY with valid JSON in one of these formats:
+
+1. For greetings/casual conversation (hi, hello, how are you, etc.):
 {
-  "usePredefinded": true/false,
-  "function": "functionName" (if usePredefined is true),
-  "parameters": {} (if usePredefined is true),
+  "type": "greeting",
+  "reason": "User is greeting or having casual conversation"
+}
+
+2. For questions about the webapp/system (what can you do, features, help, etc.):
+{
+  "type": "webapp_info",
+  "reason": "User asking about system features or capabilities"
+}
+
+3. For database queries using predefined functions:
+{
+  "type": "predefined",
+  "function": "functionName",
+  "parameters": {},
+  "reason": "brief explanation"
+}
+
+4. For database queries needing custom query:
+{
+  "type": "custom_query",
   "reason": "brief explanation"
 }
 
 Examples:
 
-Query: "Which doctors have the most patients?"
-Response: {"usePredefined": true, "function": "getDoctorsWithMostPatients", "parameters": {}, "reason": "Matches predefined function"}
+Message: "Hi there!"
+Response: {"type": "greeting", "reason": "User greeting"}
 
-Query: "Show me doctors with fees under 300"
-Response: {"usePredefined": false, "reason": "Needs custom query for fee filtering"}
+Message: "What can you do?"
+Response: {"type": "webapp_info", "reason": "User asking about capabilities"}
 
-Query: "List all cardiologists"
-Response: {"usePredefined": true, "function": "getDoctorsBySpeciality", "parameters": {"speciality": "cardiology"}, "reason": "Matches speciality function"}
+Message: "Which doctors have the most patients?"
+Response: {"type": "predefined", "function": "getDoctorsWithMostPatients", "parameters": {}, "reason": "Matches predefined function"}
+
+Message: "Show me doctors with fees under 300"
+Response: {"type": "custom_query", "reason": "Needs custom query for fee filtering"}
+
+Message: "List all cardiologists"
+Response: {"type": "predefined", "function": "getDoctorsBySpeciality", "parameters": {"speciality": "cardiology"}, "reason": "Matches speciality function"}
+
+Message: "Tell me about this system"
+Response: {"type": "webapp_info", "reason": "User asking about the system"}
 
 Now analyze: "${userQuery}"`;
 
@@ -430,6 +487,42 @@ Now analyze: "${userQuery}"`;
   }
 
   return analysisData;
+};
+
+// Function to generate greeting response
+const generateGreetingResponse = async (userMessage) => {
+  const prompt = `You are a friendly AI assistant for a Healthcare Management System. The user said: "${userMessage}"
+
+Respond in a warm, professional manner. Keep it brief (2-3 sentences). You can:
+- Greet them back warmly
+- Briefly mention you can help with the healthcare system
+- Ask if they need any information or data
+
+Be natural and conversational.`;
+
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: prompt,
+  });
+
+  return response.text;
+};
+
+// Function to generate webapp info response
+const generateWebAppInfoResponse = async (userMessage) => {
+  const prompt = `You are an AI assistant explaining a Healthcare Management System. The user asked: "${userMessage}"
+
+System Information:
+${webAppInfo}
+
+Provide a clear, helpful response about the system's features and what you can help with. Be concise but informative. Use bullet points or emojis to make it engaging.`;
+
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: prompt,
+  });
+
+  return response.text;
 };
 
 // Function to format the data into natural language
@@ -472,13 +565,39 @@ export const chatWithDatabase = async (req, res) => {
 
     console.log("User query:", message);
 
-    // Step 1: Analyze if we should use predefined function or generate custom query
+    // Step 1: Analyze the message type
     const analysis = await analyzeQueryAndExecute(message);
     console.log("Analysis:", analysis);
 
+    let naturalLanguageResponse;
+
+    // Handle different types of messages
+    if (analysis.type === "greeting") {
+      // Handle greetings
+      naturalLanguageResponse = await generateGreetingResponse(message);
+      
+      return res.json({
+        success: true,
+        response: naturalLanguageResponse,
+        type: "greeting"
+      });
+    }
+
+    if (analysis.type === "webapp_info") {
+      // Handle webapp information requests
+      naturalLanguageResponse = await generateWebAppInfoResponse(message);
+      
+      return res.json({
+        success: true,
+        response: naturalLanguageResponse,
+        type: "info"
+      });
+    }
+
+    // Handle database queries
     let data;
 
-    if (analysis.usePredefined) {
+    if (analysis.type === "predefined") {
       // Use predefined function
       const { function: functionName, parameters } = analysis;
       console.log("Using predefined function:", functionName, "Parameters:", parameters);
@@ -511,13 +630,15 @@ export const chatWithDatabase = async (req, res) => {
         default:
           throw new Error(`Unknown function: ${functionName}`);
       }
-    } else {
+    } else if (analysis.type === "custom_query") {
       // Generate and execute custom query
       console.log("Generating custom query...");
       const queryData = await generateDynamicQuery(message);
       console.log("Generated query:", JSON.stringify(queryData, null, 2));
       
       data = await executeDynamicQuery(queryData);
+    } else {
+      throw new Error("Unknown analysis type");
     }
 
     console.log("Query executed successfully. Data:", 
@@ -527,11 +648,12 @@ export const chatWithDatabase = async (req, res) => {
     );
 
     // Step 2: Format the data into natural language
-    const naturalLanguageResponse = await formatDataToNaturalLanguage(data, message);
+    naturalLanguageResponse = await formatDataToNaturalLanguage(data, message);
 
     res.json({
       success: true,
       response: naturalLanguageResponse,
+      type: "query"
     });
 
   } catch (error) {
@@ -549,7 +671,7 @@ export const chatWithDatabase = async (req, res) => {
     res.json({
       success: false,
       message: error.message || "An error occurred while processing your request",
-      response: userMessage + " Try questions like: 'Show me all doctors', 'How many appointments?', or 'List available doctors'.",
+      response: userMessage + " Try questions like: 'Show me all doctors', 'How many appointments?', or 'List available doctors'. You can also ask 'What can you do?' to learn more!",
     });
   }
 };
@@ -561,7 +683,6 @@ export const testGeminiConnection = async (req, res) => {
     
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
-
       contents: "Say hello in 5 words",
     });
 
@@ -570,7 +691,6 @@ export const testGeminiConnection = async (req, res) => {
       message: "Gemini connection successful",
       response: response.text,
       model: "gemini-2.5-flash"
-      
     });
   } catch (error) {
     console.error("Gemini test error:", error);
