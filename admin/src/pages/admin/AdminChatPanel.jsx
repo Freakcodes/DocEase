@@ -31,12 +31,10 @@ const AdminChatPanel = ({ backendUrl, aToken }) => {
 
   const sendMessage = async (e) => {
     e.preventDefault();
-    
     if (!input.trim()) return;
 
     const userMessage = input.trim();
     setInput('');
-    
     setMessages((prev) => [...prev, { role: 'user', content: userMessage }]);
     setLoading(true);
 
@@ -112,9 +110,9 @@ const AdminChatPanel = ({ backendUrl, aToken }) => {
         title="Open Chat Assistant"
       >
         {isOpen ? (
-          <i className="bi bi-x-lg fs-4"></i>
+          <i className="fa fa-times fs-4"></i>
         ) : (
-          <i className="bi bi-chat-dots-fill fs-4"></i>
+          <i className="fa fa-comments fs-4"></i>
         )}
       </button>
 
@@ -133,7 +131,7 @@ const AdminChatPanel = ({ backendUrl, aToken }) => {
         <div className="bg-primary text-white p-3 d-flex justify-content-between align-items-center">
           <div>
             <h5 className="mb-0 fw-bold">
-              <i className="bi bi-robot me-2"></i>
+              <i className="fa fa-robot me-2"></i>
               Chat Assistant
             </h5>
             <small className="text-white-50">Ask anything about your data</small>
@@ -144,14 +142,14 @@ const AdminChatPanel = ({ backendUrl, aToken }) => {
               className="btn btn-sm btn-light"
               title="Clear chat"
             >
-              <i className="bi bi-trash"></i>
+              <i className="fa fa-trash"></i>
             </button>
             <button
               onClick={() => setIsOpen(false)}
               className="btn btn-sm btn-light"
               title="Close"
             >
-              <i className="bi bi-x-lg"></i>
+              <i className="fa fa-times"></i>
             </button>
           </div>
         </div>
@@ -178,7 +176,7 @@ const AdminChatPanel = ({ backendUrl, aToken }) => {
               >
                 {message.role === 'assistant' && (
                   <div className="d-flex align-items-center gap-2 mb-2 text-primary">
-                    <i className="bi bi-robot"></i>
+                    <i className="fa fa-robot"></i>
                     <small className="fw-bold">Assistant</small>
                   </div>
                 )}
@@ -193,7 +191,7 @@ const AdminChatPanel = ({ backendUrl, aToken }) => {
             <div className="mb-3 d-flex justify-content-start">
               <div className="bg-white border rounded-3 p-3 shadow-sm">
                 <div className="d-flex align-items-center gap-2 mb-2 text-primary">
-                  <i className="bi bi-robot"></i>
+                  <i className="fa fa-robot"></i>
                   <small className="fw-bold">Assistant</small>
                 </div>
                 <div className="d-flex gap-2">
@@ -256,7 +254,7 @@ const AdminChatPanel = ({ backendUrl, aToken }) => {
                     <span className="visually-hidden">Sending...</span>
                   </span>
                 ) : (
-                  <i className="bi bi-send-fill"></i>
+                  <i className="fa fa-paper-plane"></i>
                 )}
               </button>
             </div>
