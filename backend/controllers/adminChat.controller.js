@@ -287,7 +287,7 @@ IMPORTANT RULES:
 Now generate for: "${userQuery}"`;
 
   const response = await ai.models.generateContent({
-    model: "gemini-1.5-flash-latest",
+    model: "gemini-1.5-flash",
     contents: prompt,
   });
 
@@ -405,7 +405,7 @@ Response: {"usePredefined": true, "function": "getDoctorsBySpeciality", "paramet
 Now analyze: "${userQuery}"`;
 
   const response = await ai.models.generateContent({
-    model: "gemini-1.5-flash-latest",
+    model: "gemini-1.5-flash",
     contents: prompt,
   });
 
@@ -451,7 +451,7 @@ Important:
 - If there's a count field, mention it clearly`;
 
   const response = await ai.models.generateContent({
-    model: "gemini-1.5-flash-latest",
+    model: "gemini-1.5-flash",
     contents: prompt,
   });
 
@@ -569,7 +569,8 @@ export const testGeminiConnection = async (req, res) => {
       success: true,
       message: "Gemini connection successful",
       response: response.text,
-      model: "gemini-1.5-flash-latest"
+      model: "gemini-1.5-flash"
+      "
     });
   } catch (error) {
     console.error("Gemini test error:", error);
