@@ -287,7 +287,7 @@ IMPORTANT RULES:
 Now generate for: "${userQuery}"`;
 
   const response = await ai.models.generateContent({
-    model: "gemini-2.0-flash-exp",
+    model: "gemini-1.5-flash-latest",
     contents: prompt,
   });
 
