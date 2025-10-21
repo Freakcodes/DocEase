@@ -5,6 +5,7 @@ import { addDoctor, appointmentsAdmin, cancelAppointments, getDashboardData, get
 import upload from '../middlewares/multer.middleware.js';
 import authAdmin from '../middlewares/authAdmin.middleware.js';
 import { toggleAvailability } from '../controllers/doctor.controller.js';
+import { chatWithDatabase } from '../controllers/adminChat.controller.js';
 const adminRouter=express.Router();
 
 
@@ -15,5 +16,5 @@ adminRouter.post('/change-availability',authAdmin,toggleAvailability);
 adminRouter.get('/appointments',authAdmin,appointmentsAdmin);
 adminRouter.post('/cancel-appointment',authAdmin,cancelAppointments);
 adminRouter.get('/dashboard',authAdmin,getDashboardData);
-
+adminRouter.post('/chat',chatWithDatabase);
 export default adminRouter

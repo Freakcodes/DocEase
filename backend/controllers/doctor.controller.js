@@ -224,6 +224,7 @@ const updateDoctorProfile = async (req, res) => {
 
       return res.json({
         success:true,
+        
       })
     }
   } catch (error) {
