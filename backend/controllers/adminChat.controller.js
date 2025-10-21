@@ -405,7 +405,7 @@ Response: {"usePredefined": true, "function": "getDoctorsBySpeciality", "paramet
 Now analyze: "${userQuery}"`;
 
   const response = await ai.models.generateContent({
-    model: "gemini-2.0-flash-exp",
+    model: "gemini-1.5-flash-latest",
     contents: prompt,
   });
 
@@ -451,7 +451,7 @@ Important:
 - If there's a count field, mention it clearly`;
 
   const response = await ai.models.generateContent({
-    model: "gemini-2.0-flash-exp",
+    model: "gemini-1.5-flash-latest",
     contents: prompt,
   });
 
@@ -560,7 +560,8 @@ export const testGeminiConnection = async (req, res) => {
     console.log("Testing Gemini connection...");
     
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash-exp",
+      model: "gemini-1.5-flash",
+
       contents: "Say hello in 5 words",
     });
 
@@ -568,7 +569,7 @@ export const testGeminiConnection = async (req, res) => {
       success: true,
       message: "Gemini connection successful",
       response: response.text,
-      model: "gemini-2.0-flash-exp"
+      model: "gemini-1.5-flash-latest"
     });
   } catch (error) {
     console.error("Gemini test error:", error);
