@@ -13,4 +13,5 @@ doctorRouter.use('/mark-appointment',authDoctor,markCompleteAppointment);
 doctorRouter.use('/dashboard',authDoctor,dashboardData);
 doctorRouter.use('/profile',authDoctor,getDoctorProfile);
 doctorRouter.use('/update-profile',authDoctor,upload.single('image'),updateDoctorProfile);
+
 export default doctorRouter;
