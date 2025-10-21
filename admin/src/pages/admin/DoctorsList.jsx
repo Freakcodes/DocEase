@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useState } from "react";
 import { AdminContext } from "../../context/AdminContext";
-import "./Shimmer.css"; // ← reuse the shimmer style file
+
 
 const DoctorList = () => {
   const { getAllDoctors, doctor, adminToken, changeAvailability } =
