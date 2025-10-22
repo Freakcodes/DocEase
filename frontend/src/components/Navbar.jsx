@@ -2,11 +2,13 @@ import React, { useContext, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { AppContext } from "../context/AppContext";
 
+import { assets } from "../assets/assets";
 
 const Navbar = () => {
   const { token, setToken, user } = useContext(AppContext);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -17,7 +19,7 @@ const Navbar = () => {
 
   const handleNavClick = (path) => {
     navigate(path);
-    setMenuOpen(false); // close sidebar on click
+    setMenuOpen(false);
   };
 
   return (
@@ -28,8 +30,8 @@ const Navbar = () => {
           DocEase
         </Link>
 
-        {/* Desktop Menu */}
-        <ul className={`nav-links ${menuOpen ? "open" : ""} my-auto` }>
+        {/* Menu Links */}
+        <ul className={`nav-links ${menuOpen ? "open" : ""} my-auto`}>
           <li>
             <NavLink to="/" onClick={() => setMenuOpen(false)}>Home</NavLink>
           </li>
@@ -43,7 +45,7 @@ const Navbar = () => {
             <NavLink to="/doctors" onClick={() => setMenuOpen(false)}>Doctors</NavLink>
           </li>
 
-          {/* Mobile Auth/Profile section */}
+          {/* Mobile Auth/Profile */}
           <li className="mobile-auth">
             {token ? (
               <>
@@ -52,16 +54,18 @@ const Navbar = () => {
                   <p>{user?.name}</p>
                 </div>
                 <button className="btn-outline" onClick={() => handleNavClick("/myprofile")}>
-                  Profile
+                  <i className="fa fa-user me-2"></i> Profile
                 </button>
                 <button className="btn-outline" onClick={() => handleNavClick("/appointments")}>
-                  Appointments
+                  <i className="fa fa-calendar me-2"></i> Appointments
                 </button>
-                <button className="btn-danger" onClick={handleLogout}>Logout</button>
+                <button className="btn-danger" onClick={handleLogout}>
+                  <i className="fa fa-sign-out me-2"></i> Logout
+                </button>
               </>
             ) : (
               <button className="btn-outline" onClick={() => handleNavClick("/login")}>
-                Create Account
+                <i className="fa fa-user-plus me-2"></i> Create Account
               </button>
             )}
           </li>
@@ -70,33 +74,34 @@ const Navbar = () => {
         {/* Right Section */}
         <div className="nav-actions">
           {token ? (
-            <div className="profile-wrapper">
-              <img
-                src={user?.image}
-                alt="Profile"
-                className="profile-avatar"
-                onClick={() => setShowProfileMenu(!showProfileMenu)}
-              />
-              {showProfileMenu && (
-                <div className="dropdown-menu">
-                  <button onClick={() => handleNavClick("/myprofile")}>View Profile</button>
-                  <button onClick={() => handleNavClick("/appointments")}>Appointments</button>
-                  <hr />
-                  <button className="text-danger" onClick={handleLogout}>Logout</button>
-                </div>
-              )}
+            <div
+              className={`profile-wrapper ${showProfileMenu ? "active" : ""}`}
+              onClick={() => setShowProfileMenu(!showProfileMenu)} // only works on mobile
+            >
+              <img src={user?user.image:assets.profile_pic} alt="Profile" className="profile-avatar" />
+
+              <div className="dropdown-menu">
+                <button onClick={() => handleNavClick("/myprofile")}>
+                  <i className="fa fa-user me-2"></i> View Profile
+                </button>
+                <button onClick={() => handleNavClick("/appointments")}>
+                  <i className="fa fa-calendar me-2"></i> Appointments
+                </button>
+                <hr />
+                <button className="text-danger" onClick={handleLogout}>
+                  <i className="fa fa-sign-out me-2"></i> Logout
+                </button>
+              </div>
             </div>
           ) : (
             <button className="btn-outline" onClick={() => handleNavClick("/login")}>
-              Create Account
+              <i className="fa fa-user-plus me-2"></i> Create Account
             </button>
           )}
 
           {/* Mobile menu icon */}
           <div className="menu-icon" onClick={() => setMenuOpen(!menuOpen)}>
-            <div className={`bar ${menuOpen ? "open" : ""}`}></div>
-            <div className={`bar ${menuOpen ? "open" : ""}`}></div>
-            <div className={`bar ${menuOpen ? "open" : ""}`}></div>
+            <i className="fa fa-bars"></i>
           </div>
         </div>
       </div>
