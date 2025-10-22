@@ -179,6 +179,7 @@
 }
 /* Base container */
 
+
 .shimmer-line {
   background: linear-gradient(
     90deg,
@@ -199,4 +200,55 @@
   100% {
     background-position: 400px 0;
   }
+}
+
+
+/* Shimmer base */
+.doctor-shimmer {
+  background: linear-gradient(
+    90deg,
+    #f4f4f4 25%,
+    #e8e8e8 37%,
+    #f4f4f4 63%
+  );
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+
+@keyframes doctor-shimmer {
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
+}
+
+/* Shape styles */
+.doctor-shimmer-wrapper {
+  overflow: hidden;
+}
+
+.doctor-shimmer-title {
+  width: 150px;
+  height: 20px;
+  border-radius: 5px;
+}
+
+.doctor-shimmer-btn {
+  width: 100px;
+  height: 35px;
+  border-radius: 8px;
+}
+
+.doctor-shimmer-circle {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+}
+
+.doctor-shimmer-line {
+  width: 100%;
+  height: 18px;
+  border-radius: 5px;
 }

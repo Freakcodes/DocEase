@@ -1,42 +1,42 @@
-import React, { useState, useContext, useEffect } from "react";
-import { DoctorContext } from "../../context/DoctorContext";
+import React, { useContext, useEffect, useState } from "react";
+import { AppContext } from "../context/AppContext";
 import axios from "axios";
 import { toast } from "react-toastify";
+import { useNavigate } from "react-router-dom";
 
-const DoctorProfile = () => {
-  const { doctorData, getDoctorData, doctortoken, backendUrl } =
-    useContext(DoctorContext);
-
+const MyProfile = () => {
+  const { user, setUser, backEndUrl, token, getUserProfile } =
+    useContext(AppContext);
+  const navigate = useNavigate();
   const [isEdit, setIsEdit] = useState(false);
-  const [previewImage, setPreviewImage] = useState(null);
-  const [docImage, setDocImage] = useState(null);
   const [userData, setUserData] = useState(null);
-  const [loading, setLoading] = useState(true); // 👈 shimmer state
+  const [docImage, setDocImage] = useState(null);
+  const [previewImage, setPreviewImage] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchDoctor = async () => {
-      if (doctortoken) {
-        setLoading(true);
-        await getDoctorData();
-        setLoading(false);
-      }
-    };
-    fetchDoctor();
-  }, [doctortoken]);
-
-  useEffect(() => {
-    if (doctorData) {
-      setPreviewImage(doctorData.image);
-      setUserData(doctorData);
-      setLoading(false);
+    if (!token) {
+      toast.warn("You need to login first");
+      navigate("/login");
+      return;
     }
-  }, [doctorData]);
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    setDocImage(file);
-    if (file) setPreviewImage(URL.createObjectURL(file));
-  };
+    if (user && Object.keys(user).length > 0) {
+      setUserData({
+        ...user,
+        address: user.address || { line1: "", line2: "" },
+      });
+      setPreviewImage(user.image || null);
+      setLoading(false);
+    } else {
+      // Fetch user data if not present
+      (async () => {
+        setLoading(true);
+        await getUserProfile();
+        setLoading(false);
+      })();
+    }
+  }, [user, token]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -53,18 +53,22 @@ const DoctorProfile = () => {
     }
   };
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    setDocImage(file);
+    setPreviewImage(URL.createObjectURL(file));
+  };
+
   const handleSave = async () => {
     if (!isEdit) return;
+
     try {
       const formData = new FormData();
-
       formData.append("name", userData.name);
       formData.append("email", userData.email);
-      formData.append("speciality", userData.speciality);
-      formData.append("degree", userData.degree);
-      formData.append("experience", userData.experience);
-      formData.append("fees", userData.fees);
-      formData.append("about", userData.about);
+      formData.append("phone", userData.phone);
+      formData.append("gender", userData.gender);
+      formData.append("dob", userData.dob);
       formData.append(
         "address",
         JSON.stringify({
@@ -73,263 +77,195 @@ const DoctorProfile = () => {
         })
       );
 
-      if (docImage) {
-        formData.append("image", docImage);
-      }
-
+      if (docImage) formData.append("image", docImage);
       const { data } = await axios.post(
-        backendUrl + "/api/doctor/update-profile",
+        backEndUrl + "/api/user/update-profile",
         formData,
-        { headers: { doctortoken: doctortoken } }
+        {
+          headers: {
+            usertoken: token,
+          },
+        }
       );
 
       if (data.success) {
-        toast.success("Profile Updated Successfully");
-        getDoctorData();
+        toast.success(data.message);
+        await getUserProfile();
         setIsEdit(false);
       } else {
-        toast.error(data.message);
+        toast.error(data.message || "Failed to update profile");
       }
-    } catch (error) {
-      console.error(error);
-      toast.error("Something went wrong while updating profile.");
+    } catch (err) {
+      console.error(err);
+      toast.error(err.message || "Error updating profile");
     }
   };
 
-  // 🩺 SHIMMER loader
-  const ShimmerProfile = () => (
-    <div className="card shadow-lg border-0 rounded-4 p-4 shimmer-wrapper">
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <div className="shimmer-title shimmer"></div>
-        <div className="shimmer-btn shimmer"></div>
-      </div>
-      <div className="row">
-        <div className="col-md-4 text-center">
-          <div className="shimmer-circle shimmer mb-3 mx-auto"></div>
-          <div className="shimmer-line shimmer mt-2"></div>
-        </div>
-        <div className="col-md-8">
-          {[...Array(8)].map((_, i) => (
-            <div key={i} className="shimmer-line shimmer mb-3"></div>
-          ))}
+  // ✅ Shimmer placeholder component
+  const Shimmer = () => (
+    <div className="container mt-5">
+      <div className="card shadow p-4">
+        <div className="row align-items-center">
+          <div className="col-md-3 text-center">
+            <div className="shimmer-circle mb-3"></div>
+            <div className="shimmer-line w-50 mx-auto mb-2"></div>
+          </div>
+          <div className="col-md-9">
+            {[...Array(6)].map((_, i) => (
+              <div className="shimmer-line mb-3" key={i}></div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
   );
 
+  if (loading || !userData) return <Shimmer />;
+
   return (
-    <div className="margin-left-side my-3">
-      {loading ? (
-        <ShimmerProfile />
-      ) : (
-        userData && (
-          <div className="card shadow-lg border-0 rounded-4">
-            <div className="card-body p-4">
-              <div className="d-flex justify-content-between align-items-center mb-3">
-                <h4 className="mb-0">Doctor Profile</h4>
-                <button
-                  className={`btn btn-${isEdit ? "success" : "primary"}`}
-                  onClick={() => {
-                    if (isEdit) handleSave();
-                    else setIsEdit(true);
-                  }}
-                >
-                  {isEdit ? "Save Changes" : "Edit Profile"}
-                </button>
+    <div className="container mt-5">
+      <div className="card shadow p-4">
+        <div className="row align-items-center">
+          <div className="col-md-3 text-center">
+            <img
+              src={previewImage || ""}
+              alt="profile"
+              className="img-fluid rounded-circle mb-3"
+            />
+            {isEdit && (
+              <input type="file" name="image" onChange={handleFileChange} />
+            )}
+            <button
+              className="btn btn-primary btn-sm mt-2"
+              onClick={() => {
+                if (isEdit) {
+                  handleSave();
+                } else {
+                  setIsEdit(true);
+                }
+              }}
+            >
+              {isEdit ? "Save" : "Edit Profile"}
+            </button>
+          </div>
+
+          <div className="col-md-9">
+            <div className="row mb-2">
+              <div className="col-md-6">
+                <label className="fw-bold">Name:</label>
+                {isEdit ? (
+                  <input
+                    type="text"
+                    className="form-control"
+                    name="name"
+                    value={userData.name}
+                    onChange={handleChange}
+                  />
+                ) : (
+                  <p>{userData.name}</p>
+                )}
               </div>
 
-              <div className="row align-items-start">
-                {/* Left side - Profile Image */}
-                <div className="col-md-4 text-center">
-                  <img
-                    src={previewImage}
-                    alt="Doctor"
-                    className="img-fluid rounded-circle border shadow-sm mb-3"
-                    style={{
-                      width: "180px",
-                      height: "180px",
-                      objectFit: "cover",
-                    }}
+              <div className="col-md-6">
+                <label className="fw-bold">Email:</label>
+                {isEdit ? (
+                  <input
+                    type="email"
+                    className="form-control"
+                    name="email"
+                    value={userData.email}
+                    onChange={handleChange}
                   />
-                  {isEdit && (
+                ) : (
+                  <p>{userData.email}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="row mb-2">
+              <div className="col-md-6">
+                <label className="fw-bold">Phone:</label>
+                {isEdit ? (
+                  <input
+                    type="text"
+                    className="form-control"
+                    name="phone"
+                    value={userData.phone}
+                    onChange={handleChange}
+                  />
+                ) : (
+                  <p>{userData.phone}</p>
+                )}
+              </div>
+
+              <div className="col-md-6">
+                <label className="fw-bold">Gender:</label>
+                {isEdit ? (
+                  <select
+                    className="form-select"
+                    name="gender"
+                    value={userData.gender}
+                    onChange={handleChange}
+                  >
+                    <option>Male</option>
+                    <option>Female</option>
+                    <option>Other</option>
+                  </select>
+                ) : (
+                  <p>{userData.gender}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="row mb-2">
+              <div className="col-md-6">
+                <label className="fw-bold">DOB:</label>
+                {isEdit ? (
+                  <input
+                    type="date"
+                    className="form-control"
+                    name="dob"
+                    value={userData.dob}
+                    onChange={handleChange}
+                  />
+                ) : (
+                  <p>{userData.dob}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="row mb-2">
+              <div className="col-12">
+                <label className="fw-bold">Address:</label>
+                {isEdit ? (
+                  <>
                     <input
-                      type="file"
-                      className="form-control mt-2"
-                      onChange={handleImageChange}
+                      type="text"
+                      className="form-control mb-2"
+                      name="line1"
+                      value={userData.address.line1}
+                      onChange={handleChange}
                     />
-                  )}
-                </div>
-
-                {/* Right side - Details */}
-                <div className="col-md-8">
-                  {/* All your existing fields (unchanged) */}
-                  <div className="mb-3">
-                    <label className="form-label fw-bold">Name</label>
-                    {isEdit ? (
-                      <input
-                        type="text"
-                        name="name"
-                        className="form-control"
-                        value={userData?.name || ""}
-                        onChange={handleChange}
-                      />
-                    ) : (
-                      <p className="form-control-plaintext">{userData?.name}</p>
-                    )}
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label fw-bold">Email</label>
-                    {isEdit ? (
-                      <input
-                        type="email"
-                        name="email"
-                        className="form-control"
-                        value={userData?.email || ""}
-                        onChange={handleChange}
-                      />
-                    ) : (
-                      <p className="form-control-plaintext">
-                        {userData?.email}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label fw-bold">Speciality</label>
-                    {isEdit ? (
-                      <input
-                        type="text"
-                        name="speciality"
-                        className="form-control"
-                        value={userData?.speciality || ""}
-                        onChange={handleChange}
-                      />
-                    ) : (
-                      <p className="form-control-plaintext">
-                        {userData?.speciality}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="row">
-                    <div className="col-md-6 mb-3">
-                      <label className="form-label fw-bold">Degree</label>
-                      {isEdit ? (
-                        <input
-                          type="text"
-                          name="degree"
-                          className="form-control"
-                          value={userData?.degree || ""}
-                          onChange={handleChange}
-                        />
-                      ) : (
-                        <p className="form-control-plaintext">
-                          {userData?.degree}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="col-md-6 mb-3">
-                      <label className="form-label fw-bold">Experience</label>
-                      {isEdit ? (
-                        <input
-                          type="text"
-                          name="experience"
-                          className="form-control"
-                          value={userData?.experience || ""}
-                          onChange={handleChange}
-                        />
-                      ) : (
-                        <p className="form-control-plaintext">
-                          {userData?.experience}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label fw-bold">
-                      Consultation Fee
-                    </label>
-                    {isEdit ? (
-                      <input
-                        type="number"
-                        name="fees"
-                        className="form-control"
-                        value={userData?.fees || ""}
-                        onChange={handleChange}
-                      />
-                    ) : (
-                      <p className="form-control-plaintext">
-                        ${userData?.fees}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label fw-bold">About</label>
-                    {isEdit ? (
-                      <textarea
-                        className="form-control"
-                        name="about"
-                        rows="3"
-                        value={userData?.about || ""}
-                        onChange={handleChange}
-                      ></textarea>
-                    ) : (
-                      <p className="form-control-plaintext text-muted">
-                        {userData?.about}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label fw-bold">Address</label>
-                    {isEdit ? (
-                      <>
-                        <input
-                          type="text"
-                          name="line1"
-                          className="form-control mb-2"
-                          placeholder="Address Line 1"
-                          value={userData?.address?.line1 || ""}
-                          onChange={handleChange}
-                        />
-                        <input
-                          type="text"
-                          name="line2"
-                          className="form-control"
-                          placeholder="Address Line 2"
-                          value={userData?.address?.line2 || ""}
-                          onChange={handleChange}
-                        />
-                      </>
-                    ) : (
-                      <p className="form-control-plaintext">
-                        {userData?.address?.line1}, {userData?.address?.line2}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="d-flex align-items-center gap-2">
-                    <label className="fw-bold me-2">Available:</label>
-                    <span
-                      className={`badge ${
-                        userData?.available ? "bg-success" : "bg-danger"
-                      } px-3 py-2`}
-                    >
-                      {userData?.available ? "Yes" : "No"}
-                    </span>
-                  </div>
-                </div>
+                    <input
+                      type="text"
+                      className="form-control"
+                      name="line2"
+                      value={userData.address.line2}
+                      onChange={handleChange}
+                    />
+                  </>
+                ) : (
+                  <p>
+                    {userData.address.line1}, {userData.address.line2}
+                  </p>
+                )}
               </div>
             </div>
           </div>
-        )
-      )}
+        </div>
+      </div>
     </div>
   );
 };
 
-export default DoctorProfile;
+export default MyProfile;
