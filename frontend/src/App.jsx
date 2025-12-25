@@ -13,6 +13,8 @@ import MyAppointments from './pages/MyAppointments'
 import Footer from './components/Footer'
 import MyProfile from './pages/MyProfile'
 import { AppContext } from './context/AppContext';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 const App = () => {
   const {token}=useContext(AppContext);
   return (
@@ -24,6 +26,8 @@ const App = () => {
         <Route path='/about' element={<About/>}/>
         <Route path='/contacts' element={<Contacts/>}/>
         <Route path='/login' element={<Login/>}/>
+        <Route path='/forgot-password' element={<ForgotPassword/>}/>
+        <Route path='/reset-password/:token' element={<ResetPassword/>}/>
         <Route path='/appointments/:id' element={<Appointments/>}/>
         <Route path='/doctors' element={<Doctors/>}/>
         <Route path='/doctors/:speciality' element={<Doctors/>}/>

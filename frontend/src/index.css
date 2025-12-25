@@ -1,29 +1,35 @@
-.hero-img{
-    width: 600px;
-    height: auto;
-    
-    bottom: 0;
+.hero-img {
+  width: 600px;
+  height: auto;
+
+  bottom: 0;
 }
-.pointer{
+
+.pointer {
   cursor: pointer;
 }
 
 .hide-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;     /* Firefox */
-}
-.hide-scrollbar::-webkit-scrollbar {
-  display: none;  /* Chrome, Safari */
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }
 
-.fit-content{
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+  /* Chrome, Safari */
+}
+
+.fit-content {
   width: fit-content;
 }
+
 @media (max-width: 768px) {
-    .hero-img{
-        width: 100%;
-        height: auto;
-    }
+  .hero-img {
+    width: 100%;
+    height: auto;
+  }
 }
 
 .specialty-card {
@@ -33,19 +39,22 @@
 
 .specialty-card:hover {
   transform: translateY(-8px);
-  background-color: #e9f5ff; /* light blue highlight */
+  background-color: #e9f5ff;
+  /* light blue highlight */
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
 }
+
 .no-underline {
   text-decoration: none;
-  color: inherit; /* optional: keeps parent color */
+  color: inherit;
+  /* optional: keeps parent color */
 }
 
 .doctor-card {
-  
+
   width: 250px;
   height: auto;
-  background:  #97c3e0;
+  background: #97c3e0;
 }
 
 .doctor-card-appointment {
@@ -53,68 +62,67 @@
   border-radius: 20px;
   width: 300px;
   height: auto;
-  background:  #97c3e0;
+  background: #97c3e0;
 }
 
-.doctor-card-outer:hover{
+.doctor-card-outer:hover {
   transform: translateY(-8px);
- /* lighter blue highlight */
+  /* lighter blue highlight */
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
 }
 
-.doctor-card-outer{
- transition: all 0.3s ease;
+.doctor-card-outer {
+  transition: all 0.3s ease;
 }
 
-.more-btn{
+.more-btn {
   background-color: #c1d9f3;
- 
+
   padding: 10px 20px;
   border-radius: 12px !important;
   text-decoration: none;
   transition: background-color 0.3s ease;
   width: fit-content;
 }
-.more-btn:hover{
+
+.more-btn:hover {
   background-color: #97c3e0;
- 
+
   text-decoration: none;
 }
-.sidebar p{
+
+.sidebar p {
   margin: 10px 0;
   padding: 10px;
-  
+
   border-radius: 8px;
   cursor: pointer;
   transition: background-color 0.3s ease;
-  width:200px;
+  width: 200px;
 }
 
-@media(max-width:768px)
-{
-  .sidebar p{
+@media(max-width:768px) {
+  .sidebar p {
     width: 100px;
   }
-  
+
 }
 
-.border-right{
+.border-right {
   border-right: 2px solid #e0e0e0;
   padding-right: 20px;
 }
 
-.bg-color-white{
+.bg-color-white {
   background-color: #f0f0f0;
 }
 
 .shimmer-img,
 .shimmer-line {
-  background: linear-gradient(
-    90deg,
-    #f0f0f0 25%,
-    #e0e0e0 37%,
-    #f0f0f0 63%
-  );
+  background: linear-gradient(90deg,
+      #f0f0f0 25%,
+      #e0e0e0 37%,
+      #f0f0f0 63%);
   background-size: 400% 100%;
   animation: shimmer 1.4s ease infinite;
   border-radius: 8px;
@@ -134,6 +142,7 @@
   0% {
     background-position: -400px 0;
   }
+
   100% {
     background-position: 400px 0;
   }
@@ -242,7 +251,7 @@
   background: #fff;
   border: 1px solid #ddd;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   min-width: 160px;
   display: flex;
   flex-direction: column;
@@ -289,9 +298,11 @@
 .bar.open:nth-child(1) {
   transform: translateY(8px) rotate(45deg);
 }
+
 .bar.open:nth-child(2) {
   opacity: 0;
 }
+
 .bar.open:nth-child(3) {
   transform: translateY(-8px) rotate(-45deg);
 }
@@ -319,7 +330,7 @@
     padding-top: 100px;
     gap: 2rem;
     transition: right 0.3s ease;
-    box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
   }
 
   .nav-links.open {
@@ -352,7 +363,7 @@
   }
 
   /* Hide desktop create account on mobile */
-  .nav-actions > .btn-outline {
+  .nav-actions>.btn-outline {
     display: none;
   }
 }
@@ -362,39 +373,44 @@
   display: inline-block;
 }
 
-.profile-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  cursor: pointer;
+.profile-wrapper {
+  position: relative;
 }
 
-/* Hidden by default */
+/* Hidden state */
 .dropdown-menu {
   position: absolute;
-  top: 120%;
+  top: calc(100% + 8px);
   right: 0;
   background: white;
   border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
   min-width: 180px;
-  display: none;
-  flex-direction: column;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  transform: translateY(-5px);
   z-index: 100;
 }
 
-.dropdown-menu button {
-  background: none;
-  border: none;
-  padding: 10px 15px;
-  text-align: left;
-  width: 100%;
-  cursor: pointer;
+/* Show on hover */
+.profile-wrapper:hover .dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0);
 }
 
-.dropdown-menu button:hover {
-  background-color: #f2f2f2;
+.dropdown-menu::before {
+  content: "";
+  position: absolute;
+  top: -10px;
+  left: 0;
+  width: 100%;
+  height: 10px;
 }
+
 
 /* ✅ Desktop hover behavior */
 @media (min-width: 992px) {
@@ -434,6 +450,7 @@
   0% {
     background-position: -200% 0;
   }
+
   100% {
     background-position: 200% 0;
   }

@@ -1,11 +1,13 @@
 import express from "express";
-import { bookAppointment, cancelAppointments, listAllAppointments, loginUser, paymentRazorpay, registerUser, updateUserProfile, userProfile, verifyRazorPay } from "../controllers/user.controller.js";
+import { bookAppointment, cancelAppointments, forgotPassword, listAllAppointments, loginUser, paymentRazorpay, registerUser, resetPassword, updateUserProfile, userProfile, verifyRazorPay } from "../controllers/user.controller.js";
 import { authUser } from "../middlewares/user.middleware.js";
 import upload from "../middlewares/multer.middleware.js";
 const userRouter=express.Router();
 
 userRouter.use('/register',registerUser);
 userRouter.use('/login',loginUser);
+userRouter.use('/forgot-password',forgotPassword);
+userRouter.use('/reset-password/:token',resetPassword);
 userRouter.use('/profile',authUser,userProfile);
 userRouter.use('/update-profile',authUser,upload.single('image'),updateUserProfile);
 userRouter.use('/book-appointment',authUser,bookAppointment);

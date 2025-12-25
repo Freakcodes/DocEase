@@ -136,6 +136,25 @@ const Login = () => {
                   </span>
                 </small>
               </div>
+
+              <div className="text-center mt-3">
+                <small>
+                  {state === "Login"
+                    ? "Forgot Password? "
+                    : " "}
+                  <span
+                    className="text-primary fw-bold"
+                    role="button"
+                    onClick={
+                      ()=>{
+                        navigate('/forgot-password')
+                      }
+                    }
+                  >
+                    {state === "Login" ?"Reset Now":""}
+                  </span>
+                </small>
+              </div>
             </div>
           </div>
         </div>

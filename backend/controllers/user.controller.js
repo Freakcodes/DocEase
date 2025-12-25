@@ -6,6 +6,10 @@ import { v2 as cloudinary } from "cloudinary";
 import doctorModel from "../models/doctor.model.js";
 import appointmentModel from "../models/appointment.model.js";
 import razorpay from "razorpay";
+import crypto from "crypto";
+import { log } from "console";
+import sendEmail from "../utils/sendEmail.js";
+
 const registerUser = async (req, res) => {
   const { name, email, password } = req.body;
   console.log(name);
@@ -152,7 +156,6 @@ const bookAppointment = async (req, res) => {
     return res.json({
       success: false,
       message: error,
-      
     });
   }
 };
@@ -160,13 +163,12 @@ const bookAppointment = async (req, res) => {
 //API to get all appointments
 const listAllAppointments = async (req, res) => {
   try {
-    const userId=req.userId;
-    const appointments=await appointmentModel.find({userId});
+    const userId = req.userId;
+    const appointments = await appointmentModel.find({ userId });
     return res.json({
-    success:true,
-    appointments
+      success: true,
+      appointments,
     });
-
   } catch (error) {
     return res.json({
       success: false,
@@ -176,81 +178,87 @@ const listAllAppointments = async (req, res) => {
 };
 
 //API to cancel the appointments
-const cancelAppointments=async(req,res)=>{
+const cancelAppointments = async (req, res) => {
   try {
-    const {appointmentId}=req.body;
-    const userId=req.userId;
-    const appointmentData=await appointmentModel.findById(appointmentId);
-    
-    if(appointmentData.userId!=userId){
-      return res.json({success:false,message:'Unauthorized access'});
+    const { appointmentId } = req.body;
+    const userId = req.userId;
+    const appointmentData = await appointmentModel.findById(appointmentId);
+
+    if (appointmentData.userId != userId) {
+      return res.json({ success: false, message: "Unauthorized access" });
     }
 
-    await appointmentModel.findByIdAndUpdate(appointmentId,{cancelled:true});
+    await appointmentModel.findByIdAndUpdate(appointmentId, {
+      cancelled: true,
+    });
 
     //releasing the doctor slot
 
-    const {docId,slotDate,slotTime}=appointmentData
+    const { docId, slotDate, slotTime } = appointmentData;
 
-    const doctorData=await doctorModel.findById(docId);
-    let slots_booked=doctorData.slots_booked;
-    slots_booked[slotDate]=slots_booked[slotDate].filter(e=>e!==slotTime)
+    const doctorData = await doctorModel.findById(docId);
+    let slots_booked = doctorData.slots_booked;
+    slots_booked[slotDate] = slots_booked[slotDate].filter(
+      (e) => e !== slotTime
+    );
 
-    await doctorModel.findByIdAndUpdate(docId,{slots_booked});
+    await doctorModel.findByIdAndUpdate(docId, { slots_booked });
 
-    res.json({success:true})
+    res.json({ success: true });
   } catch (error) {
     return res.json({
       success: false,
       message: error.message,
     });
   }
-}
+};
 
-const razorpayInstance=new razorpay({
-  key_id:process.env.RAZORPAY_API_KEY,
-  key_secret:process.env.RAZORPAY_SECRET_KEY
-})
+const razorpayInstance = new razorpay({
+  key_id: process.env.RAZORPAY_API_KEY,
+  key_secret: process.env.RAZORPAY_SECRET_KEY,
+});
 
 //api to make payment using razorpay...
-const paymentRazorpay=async(req,res)=>{
+const paymentRazorpay = async (req, res) => {
   try {
-    const {appointmentId}=req.body;
+    const { appointmentId } = req.body;
     console.log(appointmentId);
-    const appointmentData=await appointmentModel.findById(appointmentId);
-    
-    if(!appointmentData || appointmentData.cancelled){
+    const appointmentData = await appointmentModel.findById(appointmentId);
+
+    if (!appointmentData || appointmentData.cancelled) {
       return res.json({
-        success:false,
-        message:"Appointment Cancelled or Not Found"
-      })
+        success: false,
+        message: "Appointment Cancelled or Not Found",
+      });
     }
     //creating options for razorpay payment
-    const options={
-      amount:appointmentData.amount*100,
-      currency:process.env.CURRENCY,
-      receipt:appointmentId
-    }
+    const options = {
+      amount: appointmentData.amount * 100,
+      currency: process.env.CURRENCY,
+      receipt: appointmentId,
+    };
     console.log(options);
     //creation of an order
-    const order=await razorpayInstance.orders.create(options);
+    const order = await razorpayInstance.orders.create(options);
     console.log(order);
-    res.json({success:true,order})
+    res.json({ success: true, order });
   } catch (error) {
     return res.json({
       success: false,
       message: error,
     });
   }
-}
+};
 
-const verifyRazorPay=async(req,res)=>{
+const verifyRazorPay = async (req, res) => {
   try {
-    const {razorpay_order_id}=req.body;
-    const orderInfo=await razorpayInstance.orders.fetch(razorpay_order_id);
-    if(orderInfo.status==='paid'){
-      await appointmentModel.findByIdAndUpdate(orderInfo.receipt,{payment:true});
-      res.json({success:false,message:"Payment failed"});
+    const { razorpay_order_id } = req.body;
+    const orderInfo = await razorpayInstance.orders.fetch(razorpay_order_id);
+    if (orderInfo.status === "paid") {
+      await appointmentModel.findByIdAndUpdate(orderInfo.receipt, {
+        payment: true,
+      });
+      res.json({ success: false, message: "Payment failed" });
     }
   } catch (error) {
     return res.json({
@@ -258,7 +266,60 @@ const verifyRazorPay=async(req,res)=>{
       message: error.message,
     });
   }
-}
+};
+
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await userModel.findOne({ email });
+    if (!user) {
+      return res.json({ success: false, message: "User not found" });
+    }
+    const token = crypto.randomBytes(20).toString("hex");
+    
+    user.resetToken = token;
+    let link=process.env.FRONTEND_URL+`/reset-password/${token}`
+    sendEmail(user.email,link)
+    await user.save();
+    return res.json({success:true,message:`Reset link sent to ${user.email}`})
+  } catch (error) {
+    return res.json({ success: false, message: error.message });
+  }
+};
+
+const resetPassword = async (req, res) => {
+  try {
+    const { password } = req.body;
+    const { token } = req.params;
+
+    const user = await userModel.findOne({ resetToken: token });
+    if (!user) {
+      return res.json({
+        success: false,
+        message: "Invalid Token",
+      });
+    }
+    if (password.length < 8) {
+      return res.json({
+        success: false,
+        message: "password must be 8 character long",
+      });
+    }
+
+    const salt = await bcrypt.genSalt(8);
+    const hashedPassword = await bcrypt.hash(password, salt);
+    user.password = hashedPassword;
+    user.resetToken=null;
+    await user.save();
+
+    return res.json({ success: true, message: "Password Reset Successfully" });
+  } catch (error) {
+    return res.json({
+      success:false,
+      message:error.message
+    })
+  }
+};
 export {
   registerUser,
   loginUser,
@@ -268,5 +329,7 @@ export {
   listAllAppointments,
   cancelAppointments,
   paymentRazorpay,
-  verifyRazorPay
+  verifyRazorPay,
+  forgotPassword,
+  resetPassword
 };

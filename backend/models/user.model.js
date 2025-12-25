@@ -39,7 +39,12 @@ const userSchema=new Schema({
     phone:{
         type:String,
         default:'1234567890'
-    }
+    },
+    resetToken:{
+        type:String,
+        default:null
+    },
+    
   
 },{timestamps:true},)
 
