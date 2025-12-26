@@ -276,12 +276,16 @@ const forgotPassword = async (req, res) => {
       return res.json({ success: false, message: "User not found" });
     }
     const token = crypto.randomBytes(20).toString("hex");
-    
+
     user.resetToken = token;
-    let link=process.env.FRONTEND_URL+`/reset-password/${token}`
-    sendEmail(user.email,link)
+    user.resetTokenExpiry = Date.now() + 15 * 60 * 1000; // 15 minutes
+    let link = process.env.FRONTEND_URL + `/reset-password/${token}`;
+    sendEmail(user.email, link);
     await user.save();
-    return res.json({success:true,message:`Reset link sent to ${user.email}`})
+    return res.json({
+      success: true,
+      message: `Reset link sent to ${user.email}`,
+    });
   } catch (error) {
     return res.json({ success: false, message: error.message });
   }
@@ -292,7 +296,10 @@ const resetPassword = async (req, res) => {
     const { password } = req.body;
     const { token } = req.params;
 
-    const user = await userModel.findOne({ resetToken: token });
+    const user = await userModel.findOne({
+      resetToken: token,
+      resetTokenExpiry: { $gt: Date.now() }, 
+    });
     if (!user) {
       return res.json({
         success: false,
@@ -309,15 +316,16 @@ const resetPassword = async (req, res) => {
     const salt = await bcrypt.genSalt(8);
     const hashedPassword = await bcrypt.hash(password, salt);
     user.password = hashedPassword;
-    user.resetToken=null;
+    user.resetToken = null;
+     user.resetTokenExpiry= null;
     await user.save();
 
     return res.json({ success: true, message: "Password Reset Successfully" });
   } catch (error) {
     return res.json({
-      success:false,
-      message:error.message
-    })
+      success: false,
+      message: error.message,
+    });
   }
 };
 export {
@@ -331,5 +339,5 @@ export {
   paymentRazorpay,
   verifyRazorPay,
   forgotPassword,
-  resetPassword
+  resetPassword,
 };
