@@ -258,7 +258,7 @@ const verifyRazorPay = async (req, res) => {
       await appointmentModel.findByIdAndUpdate(orderInfo.receipt, {
         payment: true,
       });
-      res.json({ success: false, message: "Payment failed" });
+      res.json({ success: true, message: "Payment Successfull" });
     }
   } catch (error) {
     return res.json({
