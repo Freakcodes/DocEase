@@ -20,10 +20,17 @@ const addDoctor = async (req, res) => {
       fees,
       address,
       available,
-    } = req.body;
-    const imageFile = req.file;
-    //Checking for all the data
 
+      // ✅ NEW FIELDS
+      startTime,
+      endTime,
+      slotDuration,
+      availableDays,
+    } = req.body;
+
+    const imageFile = req.file;
+
+    // ✅ Validation
     if (
       !name ||
       !email ||
@@ -34,7 +41,9 @@ const addDoctor = async (req, res) => {
       !about ||
       !fees ||
       !address ||
-      !imageFile
+      !imageFile ||
+      !startTime ||
+      !endTime
     ) {
       return res.json({ success: false, message: "Fields are missing" });
     }
@@ -46,23 +55,32 @@ const addDoctor = async (req, res) => {
       });
     }
 
-    if (password.length < 0) {
+    if (password.length < 6) {
       return res.json({
         success: false,
-        message: "Please Enter a strong password ",
+        message: "Please enter a strong password",
       });
     }
 
-    //hashing the password
+    // ✅ Optional: timing validation
+    if (startTime === endTime) {
+      return res.json({
+        success: false,
+        message: "Start time and end time cannot be same",
+      });
+    }
+
+    // ✅ Hash password
     const salt = await bcrypt.genSalt(8);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    //upload image to cloudinary...
+    // ✅ Upload image
     const imageUpload = await cloudinary.uploader.upload(imageFile.path, {
       resource_type: "image",
     });
     const imageUrl = imageUpload.secure_url;
 
+    // ✅ FINAL DATA OBJECT
     const doctorData = {
       name,
       email,
@@ -73,8 +91,22 @@ const addDoctor = async (req, res) => {
       experience,
       about,
       fees,
-      available,
+      available: available ?? true,
       address: JSON.parse(address),
+
+      // 🔥 NEW: timings
+      timings: {
+        start: startTime,
+        end: endTime,
+      },
+
+      // 🔥 NEW: slot duration
+      slotDuration: slotDuration ? Number(slotDuration) : 30,
+
+      // 🔥 NEW: available days
+      availableDays: availableDays
+        ? JSON.parse(availableDays)
+        : ["MON", "TUE", "WED", "THU", "FRI"],
     };
 
     const newDoctor = new doctorModel(doctorData);
@@ -153,7 +185,7 @@ const cancelAppointments = async (req, res) => {
     const doctorData = await doctorModel.findById(docId);
     let slots_booked = doctorData.slots_booked;
     slots_booked[slotDate] = slots_booked[slotDate].filter(
-      (e) => e !== slotTime
+      (e) => e !== slotTime,
     );
 
     await doctorModel.findByIdAndUpdate(docId, { slots_booked });
@@ -181,10 +213,9 @@ const getDashboardData = async (req, res) => {
       latestAppointments: appointments.reverse().splice(0, 5),
     };
     console.log(dashData);
-    return res.json({success:true,dashData});
+    return res.json({ success: true, dashData });
   } catch (error) {
-    
-    return res.json({success:false,message:error.message});
+    return res.json({ success: false, message: error.message });
   }
 };
 export {
@@ -193,5 +224,5 @@ export {
   getDoctor,
   appointmentsAdmin,
   cancelAppointments,
-  getDashboardData
+  getDashboardData,
 };

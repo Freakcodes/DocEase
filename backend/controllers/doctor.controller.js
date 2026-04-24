@@ -176,7 +176,8 @@ const getDoctorProfile = async (req, res) => {
 const updateDoctorProfile = async (req, res) => {
   try {
     const docId = req.doctorId;
-    const imageFile=req.file;
+    const imageFile = req.file;
+
     const {
       name,
       email,
@@ -186,7 +187,15 @@ const updateDoctorProfile = async (req, res) => {
       fees,
       about,
       address,
+
+      // ✅ NEW FIELDS
+      startTime,
+      endTime,
+      slotDuration,
+      availableDays,
     } = req.body;
+
+    // ✅ validation
     if (
       !name ||
       !email ||
@@ -195,7 +204,9 @@ const updateDoctorProfile = async (req, res) => {
       !experience ||
       !fees ||
       !about ||
-      !address
+      !address ||
+      !startTime ||
+      !endTime
     ) {
       return res.json({
         success: false,
@@ -203,7 +214,8 @@ const updateDoctorProfile = async (req, res) => {
       });
     }
 
-    const updatedDoctor=await doctorModel.findByIdAndUpdate(docId,{
+    // ✅ build update object
+    const updateData = {
       name,
       email,
       speciality,
@@ -211,22 +223,42 @@ const updateDoctorProfile = async (req, res) => {
       experience,
       fees,
       about,
-      address:JSON.parse(address)
-    })
+      address: JSON.parse(address),
 
-    //update image
-    if(imageFile){
-      const imageUpload=await cloudinary.uploader.upload(imageFile.path,{
-        resource_type: "image",
+      // ✅ NEW: timings
+      timings: {
+        start: startTime,
+        end: endTime,
+      },
+
+      // ✅ NEW: slot duration
+      slotDuration: slotDuration || 30,
+
+      // ✅ NEW: available days
+      availableDays: availableDays
+        ? JSON.parse(availableDays)
+        : ["MON", "TUE", "WED", "THU", "FRI"],
+    };
+
+    // ✅ update doctor
+    await doctorModel.findByIdAndUpdate(docId, updateData);
+
+    // ✅ update image (if exists)
+    if (imageFile) {
+      const imageUpload = await cloudinary.uploader.upload(
+        imageFile.path,
+        { resource_type: "image" }
+      );
+
+      await doctorModel.findByIdAndUpdate(docId, {
+        image: imageUpload.secure_url,
       });
-      const imageUrl=imageUpload.secure_url;
-      await doctorModel.findByIdAndUpdate(docId,{image:imageUrl});
-
-      return res.json({
-        success:true,
-        
-      })
     }
+
+    return res.json({
+      success: true,
+      message: "Profile updated successfully",
+    });
   } catch (error) {
     res.json({
       success: false,
