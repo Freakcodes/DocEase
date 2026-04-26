@@ -2,7 +2,7 @@ import doctorModel from "../models/doctor.model.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import appointmentModel from "../models/appointment.model.js";
-import {v2 as cloudinary} from "cloudinary"
+import { v2 as cloudinary } from "cloudinary";
 
 const toggleAvailability = async (req, res) => {
   try {
@@ -68,7 +68,18 @@ const getAppointments = async (req, res) => {
         message: "Please Login First",
       });
     }
-    const appointments = await appointmentModel.find({ docId: doctorId });
+
+    const today = new Date();
+
+    const formattedDate = `${today.getDate()}-${today.getMonth() + 1}-${today.getFullYear()}`;
+    const appointments = await appointmentModel.find({
+      docId: doctorId,
+      slotDate: "27-4-2026",
+    });
+    console.log(formattedDate);
+
+    console.log(appointments);
+
     return res.json({
       success: true,
       appointments,
@@ -85,24 +96,52 @@ const getAppointments = async (req, res) => {
 const markCompleteAppointment = async (req, res) => {
   try {
     const docId = req.doctorId;
-    const { appointmentId } = req.body;
 
-    const appointmentData = await appointmentModel.findById(appointmentId);
+    const { appointmentId, notes, medicines, tests, followUpDate } = req.body;
 
-    if (appointmentData && appointmentData.docId === docId) {
-      await appointmentModel.findByIdAndUpdate(appointmentId, {
-        isCompleted: true,
-      });
-      return res.json({
-        success: true,
-        message: "Appointment Completed",
-      });
-    } else {
+    // find appointment
+    const appointment = await appointmentModel.findById(appointmentId);
+
+    // validation
+    if (!appointment) {
       return res.json({
         success: false,
-        message: "Mark Failed",
+        message: "Appointment not found",
       });
     }
+
+    if (appointment.docId !== docId) {
+      return res.json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    if (appointment.isCompleted) {
+      return res.json({
+        success: false,
+        message: "Already completed",
+      });
+    }
+
+    // update
+    appointment.isCompleted = true;
+    appointment.completedAt = new Date();
+
+    appointment.doctorNotes = {
+      notes,
+      medicines,
+      tests,
+      followUpDate,
+      createdAt: new Date(),
+    };
+
+    await appointment.save();
+
+    return res.json({
+      success: true,
+      message: "Appointment completed successfully",
+    });
   } catch (error) {
     return res.json({
       success: false,
@@ -110,7 +149,6 @@ const markCompleteAppointment = async (req, res) => {
     });
   }
 };
-
 //api to get the dashboard data
 
 const dashboardData = async (req, res) => {
@@ -245,10 +283,9 @@ const updateDoctorProfile = async (req, res) => {
 
     // ✅ update image (if exists)
     if (imageFile) {
-      const imageUpload = await cloudinary.uploader.upload(
-        imageFile.path,
-        { resource_type: "image" }
-      );
+      const imageUpload = await cloudinary.uploader.upload(imageFile.path, {
+        resource_type: "image",
+      });
 
       await doctorModel.findByIdAndUpdate(docId, {
         image: imageUpload.secure_url,
@@ -274,5 +311,5 @@ export {
   markCompleteAppointment,
   dashboardData,
   getDoctorProfile,
-  updateDoctorProfile
+  updateDoctorProfile,
 };

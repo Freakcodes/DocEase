@@ -10,10 +10,17 @@ const DoctorProfile = () => {
   const [isEdit, setIsEdit] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
   const [docImage, setDocImage] = useState(null);
-  const [userData, setUserData] = useState(null);
+  const [userData, setUserData] = useState({
+    timings: {
+      start: "",
+      end: "",
+    },
+    slotDuration: 30,
+    availableDays: [],
+  });
   const [loading, setLoading] = useState(true); // 👈 shimmer state
 
-  useEffect(() => {
+   useEffect(() => {
     const fetchDoctor = async () => {
       if (doctortoken) {
         setLoading(true);
@@ -27,7 +34,29 @@ const DoctorProfile = () => {
   useEffect(() => {
     if (doctorData) {
       setPreviewImage(doctorData.image);
+
+      // ✅ STEP 1: normalize data here
+      setUserData({
+        ...doctorData,
+
+        timings: doctorData.timings || {
+          start: "09:00",
+          end: "17:00",
+        },
+
+        slotDuration: doctorData.slotDuration || 30,
+
+        availableDays: doctorData.availableDays || [
+          "MON",
+          "TUE",
+          "WED",
+          "THU",
+          "FRI",
+        ],
+      });
       setUserData(doctorData);
+      console.log(doctorData);
+      
       setLoading(false);
     }
   }, [doctorData]);
@@ -55,6 +84,7 @@ const DoctorProfile = () => {
 
   const handleSave = async () => {
     if (!isEdit) return;
+
     try {
       const formData = new FormData();
 
@@ -65,22 +95,30 @@ const DoctorProfile = () => {
       formData.append("experience", userData.experience);
       formData.append("fees", userData.fees);
       formData.append("about", userData.about);
+
       formData.append(
         "address",
         JSON.stringify({
           line1: userData.address.line1,
           line2: userData.address.line2,
-        })
+        }),
       );
+
+      // ✅ NEW FIELDS
+      formData.append("startTime", userData.timings.start);
+      formData.append("endTime", userData.timings.end);
+      formData.append("slotDuration", userData.slotDuration);
+      formData.append("availableDays", JSON.stringify(userData.availableDays));
 
       if (docImage) {
         formData.append("image", docImage);
       }
 
+      
       const { data } = await axios.post(
         backendUrl + "/api/doctor/update-profile",
         formData,
-        { headers: { doctortoken: doctortoken } }
+        { headers: { doctortoken: doctortoken } },
       );
 
       if (data.success) {
@@ -321,6 +359,127 @@ const DoctorProfile = () => {
                     >
                       {userData?.available ? "Yes" : "No"}
                     </span>
+                  </div>
+                  <div className="row">
+                    <div className="col-md-6 mb-3">
+                      <label className="form-label fw-bold">Start Time</label>
+                      {isEdit ? (
+                        <input
+                          type="time"
+                          className="form-control"
+                          value={userData?.timings?.start || ""}
+                          onChange={(e) =>
+                            setUserData((prev) => ({
+                              ...prev,
+                              timings: {
+                                ...prev.timings,
+                                start: e.target.value,
+                              },
+                            }))
+                          }
+                        />
+                      ) : (
+                        <p className="form-control-plaintext">
+                          {userData?.timings?.start}
+                        </p>
+                      )}
+                    </div>
+                    <div className="mb-3">
+                      <label className="form-label fw-bold">
+                        Slot Duration (minutes)
+                      </label>
+                      {isEdit ? (
+                        <select
+                          className="form-control"
+                          value={userData?.slotDuration || 30}
+                          onChange={(e) =>
+                            setUserData((prev) => ({
+                              ...prev,
+                              slotDuration: Number(e.target.value),
+                            }))
+                          }
+                        >
+                          <option value={15}>15</option>
+                          <option value={30}>30</option>
+                          <option value={60}>60</option>
+                        </select>
+                      ) : (
+                        <p className="form-control-plaintext">
+                          {userData?.slotDuration} mins
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="mb-3">
+                      <label className="form-label fw-bold">
+                        Available Days
+                      </label>
+
+                      {isEdit ? (
+                        <div className="d-flex gap-2 flex-wrap">
+                          {[
+                            "SUN",
+                            "MON",
+                            "TUE",
+                            "WED",
+                            "THU",
+                            "FRI",
+                            "SAT",
+                          ].map((day) => (
+                            <button
+                              type="button"
+                              key={day}
+                              className={`btn btn-sm ${
+                                userData.availableDays?.includes(day)
+                                  ? "btn-primary"
+                                  : "btn-outline-primary"
+                              }`}
+                              onClick={() => {
+                                setUserData((prev) => {
+                                  const exists =
+                                    prev.availableDays.includes(day);
+                                  return {
+                                    ...prev,
+                                    availableDays: exists
+                                      ? prev.availableDays.filter(
+                                          (d) => d !== day,
+                                        )
+                                      : [...prev.availableDays, day],
+                                  };
+                                });
+                              }}
+                            >
+                              {day}
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="form-control-plaintext">
+                          {userData?.availableDays?.join(", ")}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="col-md-6 mb-3">
+                      <label className="form-label fw-bold">End Time</label>
+                      {isEdit ? (
+                        <input
+                          type="time"
+                          className="form-control"
+                          value={userData?.timings?.end || ""}
+                          onChange={(e) =>
+                            setUserData((prev) => ({
+                              ...prev,
+                              timings: { ...prev.timings, end: e.target.value },
+                            }))
+                          }
+                        />
+                      ) : (
+                        <p className="form-control-plaintext">
+                          {userData?.timings?.end}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

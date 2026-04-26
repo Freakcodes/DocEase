@@ -17,15 +17,26 @@ const AddDoctor = () => {
   const [address1, setAddress1] = useState("");
   const [address2, setAddress2] = useState("");
   const [fees, setFees] = useState("");
+  const [startTime, setStartTime] = useState("09:00");
+  const [endTime, setEndTime] = useState("17:00");
+  const [slotDuration, setSlotDuration] = useState(30);
+  const [availableDays, setAvailableDays] = useState([
+    "MON",
+    "TUE",
+    "WED",
+    "THU",
+    "FRI",
+  ]);
   const navigate = useNavigate();
   const { backendUrl, adminToken } = useContext(AdminContext);
+
   // Load saved data from localStorage on load
   useEffect(() => {
     const savedData = localStorage.getItem("doctorData");
     if (savedData) {
       const parsed = JSON.parse(savedData);
       setDocImage(
-        parsed.docImage ? dataURLtoFile(parsed.docImage, "doctor.png") : null
+        parsed.docImage ? dataURLtoFile(parsed.docImage, "doctor.png") : null,
       );
       setAbout(parsed.about || "");
       setName(parsed.name || "");
@@ -37,6 +48,12 @@ const AddDoctor = () => {
       setAddress1(parsed.address1 || "");
       setAddress2(parsed.address2 || "");
       setFees(parsed.fees || "");
+      setStartTime(parsed.startTime || "09:00");
+      setEndTime(parsed.endTime || "17:00");
+      setSlotDuration(parsed.slotDuration || 30);
+      setAvailableDays(
+        parsed.availableDays || ["MON", "TUE", "WED", "THU", "FRI"],
+      );
     }
   }, []);
 
@@ -68,6 +85,12 @@ const AddDoctor = () => {
         address1,
         address2,
         fees,
+
+        // ✅ NEW
+        startTime,
+        endTime,
+        slotDuration,
+        availableDays,
       };
       localStorage.setItem("doctorData", JSON.stringify(doctorData));
     };
@@ -120,35 +143,42 @@ const AddDoctor = () => {
       formData.append("degree", education);
       formData.append(
         "address",
-        JSON.stringify({ line1: address1, line2: address2 })
+        JSON.stringify({ line1: address1, line2: address2 }),
       );
-
+      formData.append("startTime", startTime);
+      formData.append("endTime", endTime);
+      formData.append("slotDuration", slotDuration);
+      formData.append("availableDays", JSON.stringify(availableDays));
+      if (startTime >= endTime) {
+        toast.error("End time must be after start time");
+        return;
+      }
       const { data } = await axios.post(
         backendUrl + `/api/admin/add-doctor`,
         formData,
-        { headers: { admintoken: adminToken } }
+        { headers: { admintoken: adminToken } },
       );
       setLoading(false);
       if (data.success) {
         toast.success(data.message);
-        setAbout('');
-        setAddress1('');
-        setAddress2('');
-        setDocImage('');
-        setEducation('');
-        setEmail('');
-        setExperience('');
-        setFees('');
-        setLoading('');
-        setName('');
-        setPassword('');
-        setSpeciality('');
+        setAbout("");
+        setAddress1("");
+        setAddress2("");
+        setDocImage("");
+        setEducation("");
+        setEmail("");
+        setExperience("");
+        setFees("");
+        setLoading("");
+        setName("");
+        setPassword("");
+        setSpeciality("");
       } else {
         toast.error(data.message);
         console.log(data.message);
       }
     } catch (error) {
-      toast.error(error.message); 
+      toast.error(error.message);
     }
   };
 
@@ -296,6 +326,37 @@ const AddDoctor = () => {
                 onChange={(e) => setAbout(e.target.value)}
               ></textarea>
             </div>
+            <div className="col-md-6">
+              <label className="form-label">Start Time</label>
+              <input
+                type="time"
+                className="form-control"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+              />
+            </div>
+            <div className="col-md-6">
+              <label className="form-label">Slot Duration</label>
+              <select
+                className="form-select"
+                value={slotDuration}
+                onChange={(e) => setSlotDuration(Number(e.target.value))}
+              >
+                <option value={15}>15 mins</option>
+                <option value={30}>30 mins</option>
+                <option value={60}>60 mins</option>
+              </select>
+            </div>
+
+            <div className="col-md-6">
+              <label className="form-label">End Time</label>
+              <input
+                type="time"
+                className="form-control"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+              />
+            </div>
 
             <div className="col-12 text-center mt-3">
               {loading ? (
@@ -319,6 +380,36 @@ const AddDoctor = () => {
               >
                 Clear Form
               </button>
+            </div>
+
+            <div className="col-md-12">
+              <label className="form-label">Available Days</label>
+              <div className="d-flex flex-wrap gap-2">
+                {["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"].map(
+                  (day) => (
+                    <button
+                      type="button"
+                      key={day}
+                      className={`btn btn-sm ${
+                        availableDays.includes(day)
+                          ? "btn-primary"
+                          : "btn-outline-primary"
+                      }`}
+                      onClick={() => {
+                        if (availableDays.includes(day)) {
+                          setAvailableDays(
+                            availableDays.filter((d) => d !== day),
+                          );
+                        } else {
+                          setAvailableDays([...availableDays, day]);
+                        }
+                      }}
+                    >
+                      {day}
+                    </button>
+                  ),
+                )}
+              </div>
             </div>
           </div>
         </form>

@@ -9,7 +9,7 @@ const doctorRouter=express.Router();
 doctorRouter.use('/list',listAllDoctors);
 doctorRouter.use('/login',doctorLogin);
 doctorRouter.use('/appointments',authDoctor,getAppointments);
-doctorRouter.use('/mark-appointment',authDoctor,markCompleteAppointment);
+doctorRouter.use('/complete-appointment',authDoctor,markCompleteAppointment);
 doctorRouter.use('/dashboard',authDoctor,dashboardData);
 doctorRouter.use('/profile',authDoctor,getDoctorProfile);
 doctorRouter.use('/update-profile',authDoctor,upload.single('image'),updateDoctorProfile);
