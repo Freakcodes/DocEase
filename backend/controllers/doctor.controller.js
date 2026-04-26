@@ -157,7 +157,7 @@ const dashboardData = async (req, res) => {
 
     // filter out cancelled appointments
     const validAppointments = appointments.filter(
-      (apt) => !apt.isCancelled
+      (apt) => !apt.cancelled
     );
 
     // calculate total earnings
