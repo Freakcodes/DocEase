@@ -74,11 +74,9 @@ const getAppointments = async (req, res) => {
     const formattedDate = `${today.getDate()}-${today.getMonth() + 1}-${today.getFullYear()}`;
     const appointments = await appointmentModel.find({
       docId: doctorId,
-      slotDate: "27-4-2026",
+      slotDate: formattedDate,
     });
-    console.log(formattedDate);
-
-    console.log(appointments);
+   
 
     return res.json({
       success: true,
@@ -154,19 +152,25 @@ const markCompleteAppointment = async (req, res) => {
 const dashboardData = async (req, res) => {
   try {
     const docId = req.doctorId;
-    console.log(docId);
+
     const appointments = await appointmentModel.find({ docId });
-    console.log(appointments);
-    //caculate total earnings..
+
+    // filter out cancelled appointments
+    const validAppointments = appointments.filter(
+      (apt) => !apt.isCancelled
+    );
+
+    // calculate total earnings
     let earnings = 0;
-    appointments.map((apt) => {
+    validAppointments.forEach((apt) => {
       if (apt.isCompleted && apt.payment) {
         earnings += apt.amount;
       }
     });
 
+    // unique patients
     let patients = [];
-    appointments.map((apt) => {
+    validAppointments.forEach((apt) => {
       if (!patients.includes(apt.userId)) {
         patients.push(apt.userId);
       }
@@ -174,10 +178,11 @@ const dashboardData = async (req, res) => {
 
     const dashData = {
       earnings,
-      appointments: appointments.length,
+      appointments: validAppointments.length, 
       patients: patients.length,
-      latestAppointments: appointments.reverse().slice(0, 5),
+      latestAppointments: validAppointments.reverse().slice(0, 5),
     };
+
     res.json({
       success: true,
       dashData,

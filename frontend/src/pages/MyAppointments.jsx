@@ -11,11 +11,14 @@ const MyAppointments = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const navigate = useNavigate();
-  const isLoading=appointments.length===0 || !appointments
+  const isLoading = appointments.length === 0 || !appointments;
   const getAppointedDoctors = async () => {
-    const { data } = await axios.get(backEndUrl + "/api/user/list-appointments", {
-      headers: { usertoken: token },
-    });
+    const { data } = await axios.get(
+      backEndUrl + "/api/user/list-appointments",
+      {
+        headers: { usertoken: token },
+      },
+    );
     if (data.success) {
       setAppointments(data.appointments.reverse());
     } else {
@@ -37,7 +40,7 @@ const MyAppointments = () => {
           const { data } = await axios.post(
             backEndUrl + "/api/user/verifyRazorpay",
             response,
-            { headers: { usertoken: token } }
+            { headers: { usertoken: token } },
           );
           if (data.success) {
             getAppointedDoctors();
@@ -57,7 +60,7 @@ const MyAppointments = () => {
       const { data } = await axios.post(
         backEndUrl + "/api/user/payment-razorpay",
         { appointmentId: appointments._id },
-        { headers: { usertoken: token } }
+        { headers: { usertoken: token } },
       );
       if (data.success) {
         initPay(data.order);
@@ -73,7 +76,7 @@ const MyAppointments = () => {
     const { data } = await axios.post(
       backEndUrl + "/api/user/cancel-appointments",
       { appointmentId: appointments._id },
-      { headers: { usertoken: token } }
+      { headers: { usertoken: token } },
     );
     if (data.success) {
       toast.success("Appointment Cancelled");
@@ -90,13 +93,14 @@ const MyAppointments = () => {
 
   return (
     <div className="container py-5">
-      <h2 className="text-center fw-bold mb-5 text-primary">
-         My Appointments
-      </h2>
+      <h2 className="text-center fw-bold mb-5 text-primary">My Appointments</h2>
 
-      <div className="row g-4">
-        {isLoading?<Shimmer/>:
-          appointments.map((appointment, index) => (
+      {isLoading ? (
+        <Shimmer />
+      ) : (
+        appointments
+          .filter((appointment) => !appointment.cancelled) // 👈 THIS LINE
+          .map((appointment, index) => (
             <div key={index} className="col-md-6 col-lg-4">
               <div className="card border-0 shadow-lg rounded-4 overflow-hidden h-100 appointment-card">
                 <div className="position-relative">
@@ -106,12 +110,10 @@ const MyAppointments = () => {
                     className="card-img-top"
                     style={{ height: "220px", objectFit: "contain" }}
                   />
+
+                  {/* Status Badge (no cancelled now) */}
                   <div className="position-absolute top-0 start-0 w-100 h-100 bg-dark bg-opacity-25 d-flex justify-content-end p-2">
-                    {appointment.cancelled ? (
-                      <span className="badge bg-danger px-3 py-2 shadow">
-                        Cancelled
-                      </span>
-                    ) : appointment.payment ? (
+                    {appointment.payment ? (
                       <span className="badge bg-success px-3 py-2 shadow">
                         Paid
                       </span>
@@ -145,40 +147,50 @@ const MyAppointments = () => {
                       <div className="text-muted">{appointment.slotTime}</div>
                     </div>
 
-                    {!appointment.cancelled && (
-                      <div className="d-flex flex-column align-items-end gap-2">
-                        {!appointment.payment ? (
-                          <button
-                            className="btn btn-sm btn-success px-3 shadow-sm"
-                            onClick={() => appointmentRazorpay(appointment)}
-                          >
-                            💳 Pay Online
-                          </button>
-                        ) : (
-                          <button
-                            className="btn btn-sm btn-outline-secondary px-3 shadow-sm"
-                            disabled
-                          >
-                            ✅ Payment Done
-                          </button>
-                        )}
+                    <div className="d-flex flex-column align-items-end gap-2">
+                      {!appointment.payment ? (
                         <button
-                          className="btn btn-sm btn-outline-danger px-3 shadow-sm"
-                          onClick={() => {
-                            setShowModal(true);
-                            setSelectedAppointment(appointment);
-                          }}
+                          className="btn btn-sm btn-success px-3 shadow-sm"
+                          onClick={() => appointmentRazorpay(appointment)}
                         >
-                          ❌ Cancel
+                          💳 Pay Online
                         </button>
-                      </div>
-                    )}
+                      ) : (
+                        <button
+                          className="btn btn-sm btn-outline-secondary px-3 shadow-sm"
+                          disabled
+                        >
+                          ✅ Payment Done
+                        </button>
+                      )}
+
+                      <button
+                        className="btn btn-sm btn-outline-danger px-3 shadow-sm"
+                        onClick={() => {
+                          setShowModal(true);
+                          setSelectedAppointment(appointment);
+                        }}
+                      >
+                        ❌ Cancel
+                      </button>
+
+                      {appointment.payment && appointment.isCompleted && (
+                        <button
+                          className="btn btn-sm btn-outline-primary px-3"
+                          onClick={() =>
+                            navigate(`/my-appointments/${appointment._id}`)
+                          }
+                        >
+                          🔍 View Details
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          ))}
-      </div>
+          ))
+      )}
 
       {showModal && (
         <div
@@ -189,9 +201,7 @@ const MyAppointments = () => {
             className="bg-white p-4 rounded-4 shadow-lg text-center"
             style={{ width: "400px" }}
           >
-            <h5 className="fw-bold text-danger mb-3">
-              Cancel Appointment ❗
-            </h5>
+            <h5 className="fw-bold text-danger mb-3">Cancel Appointment ❗</h5>
             <p className="mb-4 text-muted">
               Are you sure you want to cancel your appointment with{" "}
               <strong>{selectedAppointment?.docData.name}</strong>?

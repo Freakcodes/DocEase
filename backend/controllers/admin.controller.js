@@ -199,6 +199,44 @@ const cancelAppointments = async (req, res) => {
   }
 };
 
+//API to change the payment..
+const updatePayment = async (req, res) => {
+  try {
+    const { appointmentId } = req.body;
+
+    const appointmentData = await appointmentModel.findById(appointmentId);
+    //check if the appointment exists..
+    if (!appointmentData) {
+      return res.json({
+        success: false,
+        message: "Appointment not found",
+      });
+    }
+
+    //preventing duplicate payments..
+
+    if (appointmentData.payment) {
+      return res.json({
+        success: false,
+        message: "Payment already done",
+      });
+    }
+
+    await appointmentModel.findByIdAndUpdate(appointmentId, {
+      payment: true,
+    });
+    res.json({
+      success: true,
+      message: "Payment Updated Successfully",
+    });
+  } catch (error) {
+    return res.json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 //API dashboard
 const getDashboardData = async (req, res) => {
   try {
@@ -225,4 +263,5 @@ export {
   appointmentsAdmin,
   cancelAppointments,
   getDashboardData,
+  updatePayment
 };

@@ -3,7 +3,6 @@ import { AdminContext } from "../../context/AdminContext";
 import axios from "axios";
 import { toast } from "react-toastify";
 
-
 const Appointments = () => {
   const { getAllAppointments, appointments, adminToken, backendUrl } =
     useContext(AdminContext);
@@ -26,10 +25,11 @@ const Appointments = () => {
       const { data } = await axios.post(
         backendUrl + "/api/admin/cancel-appointment",
         { appointmentId: appointment._id },
-        { headers: { admintoken: adminToken } }
+        { headers: { admintoken: adminToken } },
       );
       if (data.success) {
         toast.success("Appointment Cancelled");
+        getAllAppointments();
       } else {
         toast.error(data.message);
       }
@@ -42,6 +42,25 @@ const Appointments = () => {
     if (!dob) return "-";
     const birth = new Date(dob);
     return new Date().getFullYear() - birth.getFullYear();
+  };
+
+  const handleMarkPayment = async (appointmentId) => {
+    try {
+      const { data } = await axios.post(
+        backendUrl + "/api/admin/update-payment",
+        { appointmentId},
+        { headers: { adminToken } },
+      );
+
+      if (data.success) {
+        toast.success(data.message);
+        getAllAppointments(); // refresh UI
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      toast.error(error.message);
+    }
   };
 
   // shimmer loader
@@ -70,6 +89,7 @@ const Appointments = () => {
               <th>Date &amp; Time</th>
               <th>Doctor</th>
               <th>Fees</th>
+              <th>Payment</th>
               <th className="text-center">Action</th>
             </tr>
           </thead>
@@ -123,6 +143,26 @@ const Appointments = () => {
                     </td>
                     <td className="py-3 text-dark fw-semibold">
                       ${doc?.fees || 0}
+                    </td>
+                    <td className="py-3 text-center">
+                      {apt.payment ? (
+                        <span className="badge bg-success-subtle text-success px-3 py-2">
+                          Paid
+                        </span>
+                      ) : (
+                        <div className="d-flex flex-column align-items-center gap-2">
+                          <span className="badge bg-warning-subtle text-warning px-3 py-2">
+                            Pending
+                          </span>
+
+                          <button
+                            className="btn btn-sm btn-outline-primary"
+                            onClick={() => handleMarkPayment(apt._id)}
+                          >
+                            Mark Paid
+                          </button>
+                        </div>
+                      )}
                     </td>
                     <td className="py-3 text-center">
                       {apt.cancelled ? (

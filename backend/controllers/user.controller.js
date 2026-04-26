@@ -177,6 +177,36 @@ const listAllAppointments = async (req, res) => {
   }
 };
 
+//API to get appointment by ID
+
+const getAppointment = async (req, res) => {
+  try {
+    const { appointmentId } = req.body;
+    const userId = req.userId;
+    if (!userId) {
+      return res.json({
+        success: false,
+        message: "user id not found",
+      });
+    }
+    const appointmentData = await appointmentModel.findById(appointmentId);
+
+    if (appointmentData.userId != userId) {
+      return res.json({ success: false, message: "Unauthorized access" });
+    }
+
+    return res.json({
+      success: true,
+      appointmentData,
+    });
+  } catch (error) {
+    return res.json({
+      success: false,
+      message: error,
+    });
+  }
+};
+
 //API to cancel the appointments
 const cancelAppointments = async (req, res) => {
   try {
@@ -199,7 +229,7 @@ const cancelAppointments = async (req, res) => {
     const doctorData = await doctorModel.findById(docId);
     let slots_booked = doctorData.slots_booked;
     slots_booked[slotDate] = slots_booked[slotDate].filter(
-      (e) => e !== slotTime
+      (e) => e !== slotTime,
     );
 
     await doctorModel.findByIdAndUpdate(docId, { slots_booked });
@@ -298,7 +328,7 @@ const resetPassword = async (req, res) => {
 
     const user = await userModel.findOne({
       resetToken: token,
-      resetTokenExpiry: { $gt: Date.now() }, 
+      resetTokenExpiry: { $gt: Date.now() },
     });
     if (!user) {
       return res.json({
@@ -317,7 +347,7 @@ const resetPassword = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt);
     user.password = hashedPassword;
     user.resetToken = null;
-     user.resetTokenExpiry= null;
+    user.resetTokenExpiry = null;
     await user.save();
 
     return res.json({ success: true, message: "Password Reset Successfully" });
@@ -340,4 +370,5 @@ export {
   verifyRazorPay,
   forgotPassword,
   resetPassword,
+  getAppointment
 };
