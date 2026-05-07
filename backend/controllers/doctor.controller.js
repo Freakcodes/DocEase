@@ -76,7 +76,6 @@ const getAppointments = async (req, res) => {
       docId: doctorId,
       slotDate: formattedDate,
     });
-   
 
     return res.json({
       success: true,
@@ -156,9 +155,7 @@ const dashboardData = async (req, res) => {
     const appointments = await appointmentModel.find({ docId });
 
     // filter out cancelled appointments
-    const validAppointments = appointments.filter(
-      (apt) => !apt.cancelled
-    );
+    const validAppointments = appointments.filter((apt) => !apt.cancelled);
 
     // calculate total earnings
     let earnings = 0;
@@ -178,7 +175,7 @@ const dashboardData = async (req, res) => {
 
     const dashData = {
       earnings,
-      appointments: validAppointments.length, 
+      appointments: validAppointments.length,
       patients: patients.length,
       latestAppointments: validAppointments.reverse().slice(0, 5),
     };
@@ -308,6 +305,46 @@ const updateDoctorProfile = async (req, res) => {
     });
   }
 };
+
+const appointmentDetails = async (req, res) => {
+  try {
+
+    const { id } = req.params;
+
+    // Check ID
+    if (!id) {
+      return res.json({
+        success: false,
+        message: "Appointment ID is required",
+      });
+    }
+
+    // Find Appointment
+    const appointment = await appointmentModel.findById(id);
+
+    // Check Appointment Exists
+    if (!appointment) {
+      return res.json({
+        success: false,
+        message: "Appointment not found",
+      });
+    }
+
+    // Success Response
+    return res.json({
+      success: true,
+      appointment,
+    });
+
+  } catch (error) {
+
+    return res.json({
+      success: false,
+      message: error.message,
+    });
+
+  }
+};
 export {
   toggleAvailability,
   listAllDoctors,
@@ -317,4 +354,5 @@ export {
   dashboardData,
   getDoctorProfile,
   updateDoctorProfile,
+  appointmentDetails
 };
