@@ -48,7 +48,7 @@ const Appointments = () => {
     try {
       const { data } = await axios.post(
         backendUrl + "/api/admin/update-payment",
-        { appointmentId},
+        { appointmentId },
         { headers: { adminToken } },
       );
 
@@ -167,6 +167,10 @@ const Appointments = () => {
                     <td className="py-3 text-center">
                       {apt.cancelled ? (
                         <div className="text-danger">Cancelled</div>
+                      ) : apt.isCompleted ? (
+                        <span className="text-success fw-medium">
+                          Completed
+                        </span>
                       ) : (
                         <button
                           className="btn btn-sm btn-outline-danger rounded-circle d-flex align-items-center justify-content-center mx-auto"

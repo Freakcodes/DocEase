@@ -2,11 +2,12 @@ import React, { useContext, useEffect, useState } from "react";
 import { DoctorContext } from "../../context/DoctorContext";
 import { toast } from "react-toastify";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const DoctorAppointments = () => {
   const { getAppointments, appointments, doctortoken, backendUrl } =
     useContext(DoctorContext);
-
+  const navigate = useNavigate();
   const [filteredAppointments, setFilteredAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -198,21 +199,29 @@ const DoctorAppointments = () => {
                       </td>
                       <td className="py-3 text-center">
                         {apt.isCompleted ? (
-                          <span className="badge bg-success bg-opacity-10 text-success px-3 py-2">
-                            <i className="fas fa-check-circle me-1"></i>
-                            Completed
-                          </span>
+                          <div className="d-flex justify-content-center gap-2 flex-wrap">
+                            {/* <span className="badge bg-success bg-opacity-10 text-success px-3 py-2">
+                              <i className="fas fa-check-circle me-1"></i>
+                              Completed
+                            </span> */}
+
+                            <button
+                              className="btn btn-sm btn-outline-success px-3 py-2 rounded-pill fw-medium"
+                              onClick={() =>
+                                navigate(`/appointment/${apt._id}`)
+                              }
+                            >
+                              <i className="fas fa-eye me-2"></i>
+                              View Consultation
+                            </button>
+                          </div>
                         ) : (
                           <button
-                            className="btn btn-sm btn-outline-success rounded-circle d-flex align-items-center justify-content-center mx-auto"
-                            style={{ width: "32px", height: "32px" }}
-                            title="Mark as Completed"
-                            onClick={() => {
-                              setSelectedAppointment(apt);
-                              setShowModal(true);
-                            }}
+                            className="btn btn-sm btn-primary px-3 py-2 rounded-pill fw-medium"
+                            onClick={() => navigate(`/appointment/${apt._id}`)}
                           >
-                            <i className="fas fa-check"></i>
+                            <i className="fas fa-notes-medical me-2"></i>
+                            Start Consultation
                           </button>
                         )}
                       </td>

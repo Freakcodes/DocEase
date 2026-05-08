@@ -5,6 +5,7 @@ import {
   doctorLogin,
   getAppointments,
   getDoctorProfile,
+  getUserAppointmentHistory,
   listAllDoctors,
   markCompleteAppointment,
   updateDoctorProfile,
@@ -22,5 +23,5 @@ doctorRouter.use("/dashboard", authDoctor, dashboardData);
 doctorRouter.use("/profile", authDoctor, getDoctorProfile);
 doctorRouter.use("/update-profile",authDoctor,upload.single("image"),updateDoctorProfile);
 doctorRouter.get("/appointment/:id", authDoctor, appointmentDetails);
-
+doctorRouter.get("/appointment-history/:id",authDoctor,getUserAppointmentHistory);
 export default doctorRouter;

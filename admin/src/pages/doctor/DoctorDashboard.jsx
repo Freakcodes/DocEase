@@ -3,6 +3,7 @@ import { DoctorContext } from "../../context/DoctorContext";
 // import { dashboardData } from "../../../../backend/controllers/doctor.controller";
 import { toast } from "react-toastify";
 import axios from "axios";
+import { Link } from "react-router-dom";
 
 const DoctorDashboard = () => {
   const { dashData, doctortoken, getDashboardData, backendUrl } =
@@ -30,9 +31,9 @@ const DoctorDashboard = () => {
   const handleMark = async (appointment) => {
     try {
       const { data } = await axios.post(
-        backendUrl + "/api/doctor/mark-appointment",
+        backendUrl + "/api/doctor/complete-appointment",
         { appointmentId: appointment._id },
-        { headers: { doctortoken: doctortoken } }
+        { headers: { doctortoken: doctortoken } },
       );
       if (data.success) {
         toast.success(data.message);
@@ -51,11 +52,20 @@ const DoctorDashboard = () => {
       <div className="card shadow-sm border-0 rounded-4">
         <div className="card-body d-flex align-items-center justify-content-between">
           <div style={{ flex: 1 }}>
-            <div className="shimmer-line mb-2" style={{ width: "60%", height: "18px" }}></div>
-            <div className="shimmer-line" style={{ width: "40%", height: "24px" }}></div>
+            <div
+              className="shimmer-line mb-2"
+              style={{ width: "60%", height: "18px" }}
+            ></div>
+            <div
+              className="shimmer-line"
+              style={{ width: "40%", height: "24px" }}
+            ></div>
           </div>
           <div className="bg-primary bg-opacity-10 p-3 rounded-circle">
-            <div className="shimmer-line rounded-circle" style={{ width: "32px", height: "32px" }}></div>
+            <div
+              className="shimmer-line rounded-circle"
+              style={{ width: "32px", height: "32px" }}
+            ></div>
           </div>
         </div>
       </div>
@@ -71,7 +81,10 @@ const DoctorDashboard = () => {
         </td>
       ))}
       <td className="py-3 text-center">
-        <div className="shimmer-line rounded-circle" style={{ width: "32px", height: "32px", margin: "0 auto" }}></div>
+        <div
+          className="shimmer-line rounded-circle"
+          style={{ width: "32px", height: "32px", margin: "0 auto" }}
+        ></div>
       </td>
     </tr>
   );
@@ -121,8 +134,12 @@ const DoctorDashboard = () => {
                 <div className="card shadow-sm border-0 rounded-4">
                   <div className="card-body d-flex align-items-center justify-content-between">
                     <div>
-                      <h6 className="text-uppercase text-muted mb-2">Earnings</h6>
-                      <h4 className="fw-bold text-primary">${dashData?.earnings || 0}</h4>
+                      <h6 className="text-uppercase text-muted mb-2">
+                        Earnings
+                      </h6>
+                      <h4 className="fw-bold text-primary">
+                        ${dashData?.earnings || 0}
+                      </h4>
                     </div>
                     <div className="bg-primary bg-opacity-10 p-3 rounded-circle">
                       <i className="fas fa-dollar-sign text-primary fs-4"></i>
@@ -135,8 +152,12 @@ const DoctorDashboard = () => {
                 <div className="card shadow-sm border-0 rounded-4">
                   <div className="card-body d-flex align-items-center justify-content-between">
                     <div>
-                      <h6 className="text-uppercase text-muted mb-2">Appointments</h6>
-                      <h4 className="fw-bold text-primary">{dashData?.appointments || 0}</h4>
+                      <h6 className="text-uppercase text-muted mb-2">
+                        Appointments
+                      </h6>
+                      <h4 className="fw-bold text-primary">
+                        {dashData?.appointments || 0}
+                      </h4>
                     </div>
                     <div className="bg-primary bg-opacity-10 p-3 rounded-circle">
                       <i className="fas fa-calendar-check text-primary fs-4"></i>
@@ -149,8 +170,12 @@ const DoctorDashboard = () => {
                 <div className="card shadow-sm border-0 rounded-4">
                   <div className="card-body d-flex align-items-center justify-content-between">
                     <div>
-                      <h6 className="text-uppercase text-muted mb-2">Patients</h6>
-                      <h4 className="fw-bold text-primary">{dashData?.patients || 0}</h4>
+                      <h6 className="text-uppercase text-muted mb-2">
+                        Patients
+                      </h6>
+                      <h4 className="fw-bold text-primary">
+                        {dashData?.patients || 0}
+                      </h4>
                     </div>
                     <div className="bg-primary bg-opacity-10 p-3 rounded-circle">
                       <i className="fas fa-user-injured text-primary fs-4"></i>
@@ -170,60 +195,98 @@ const DoctorDashboard = () => {
                 <table className="table align-middle mb-0">
                   <thead className="table-light">
                     <tr>
-                      <th scope="col" className="fw-semibold text-secondary">#</th>
-                      <th scope="col" className="fw-semibold text-secondary">Patient</th>
-                      <th scope="col" className="fw-semibold text-secondary">Age</th>
-                      <th scope="col" className="fw-semibold text-secondary">Date &amp; Time</th>
-                      <th scope="col" className="fw-semibold text-secondary">Fees</th>
-                      <th scope="col" className="text-center fw-semibold text-secondary">Action</th>
+                      <th scope="col" className="fw-semibold text-secondary">
+                        #
+                      </th>
+                      <th scope="col" className="fw-semibold text-secondary">
+                        Patient
+                      </th>
+                      <th scope="col" className="fw-semibold text-secondary">
+                        Age
+                      </th>
+                      <th scope="col" className="fw-semibold text-secondary">
+                        Date &amp; Time
+                      </th>
+                      <th scope="col" className="fw-semibold text-secondary">
+                        Fees
+                      </th>
+                      <th
+                        scope="col"
+                        className="text-center fw-semibold text-secondary"
+                      >
+                        Action
+                      </th>
                     </tr>
                   </thead>
 
                   <tbody>
-                    {dashData?.latestAppointments && dashData?.latestAppointments.length > 0 ? (
+                    {dashData?.latestAppointments &&
+                    dashData?.latestAppointments.length > 0 ? (
                       dashData.latestAppointments.map((apt, index) => {
                         const user = apt.userData;
                         const doc = apt.docData;
-                        return !apt.cancelled && (
-                          <tr key={index} className="border-bottom">
-                            <td className="py-3 fw-semibold text-primary">{index + 1}</td>
-                            <td className="py-3">
-                              <div className="d-flex align-items-center gap-2">
-                                <img
-                                  src={user?.image}
-                                  alt={user?.name}
-                                  className="rounded-circle border"
-                                  style={{ width: "40px", height: "40px", objectFit: "cover" }}
-                                />
-                                <span className="fw-medium text-dark">{user?.name || "-"}</span>
-                              </div>
-                            </td>
-                            <td className="py-3 text-muted">{getAge(user?.dob)}</td>
-                            <td className="py-3 text-muted">{apt.slotDate}, {apt.slotTime}</td>
-                            <td className="py-3 fw-semibold text-primary">${doc?.fees || 0}</td>
-                            <td className="py-3 text-center">
-                              {apt.isCompleted ? (
-                                <span className="badge bg-success bg-opacity-10 text-success px-3 py-2">
-                                  <i className="fas fa-check-circle me-1"></i>Completed
-                                </span>
-                              ) : (
-                                <button
-                                  className="btn btn-sm btn-outline-success rounded-circle d-flex align-items-center justify-content-center mx-auto"
-                                  style={{ width: "32px", height: "32px" }}
-                                  title="Mark as Completed"
-                                  onClick={() => handleMark(apt)}
-                                >
-                                  <i className="fas fa-check"></i>
-                                </button>
-                              )}
-                            </td>
-                          </tr>
+                        return (
+                          !apt.cancelled && (
+                            <tr key={index} className="border-bottom">
+                              <td className="py-3 fw-semibold text-primary">
+                                {index + 1}
+                              </td>
+                              <td className="py-3">
+                                <div className="d-flex align-items-center gap-2">
+                                  <img
+                                    src={user?.image}
+                                    alt={user?.name}
+                                    className="rounded-circle border"
+                                    style={{
+                                      width: "40px",
+                                      height: "40px",
+                                      objectFit: "cover",
+                                    }}
+                                  />
+                                  <span className="fw-medium text-dark">
+                                    {user?.name || "-"}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="py-3 text-muted">
+                                {getAge(user?.dob)}
+                              </td>
+                              <td className="py-3 text-muted">
+                                {apt.slotDate}, {apt.slotTime}
+                              </td>
+                              <td className="py-3 fw-semibold text-primary">
+                                ${doc?.fees || 0}
+                              </td>
+                              <td className="py-3 text-center">
+                                {apt.isCompleted ? (
+                                  <Link
+                                    to={`/appointment/${apt._id}`}
+                                    className="text-decoration-none"
+                                  >
+                                    <span className="badge rounded-pill bg-success-subtle text-success px-3 py-2 fw-medium">
+                                      <i className="fas fa-eye me-1"></i>
+                                      View
+                                    </span>
+                                  </Link>
+                                ) : (
+                                  <span className="badge rounded-pill bg-warning-subtle text-warning px-3 py-2 fw-medium">
+                                    <i className="fas fa-clock me-1"></i>
+                                    Pending
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          )
                         );
                       })
                     ) : (
                       <tr>
-                        <td colSpan="8" className="text-center text-muted py-5 fs-6 fw-medium">
-                          <i className="fas fa-info-circle me-2"></i>No appointments found.
+                        <td
+                          colSpan="8"
+                          className="text-center text-muted py-5 fs-6 fw-medium"
+                        >
+                          <i className="fas fa-info-circle me-2"></i>No
+                          appointments found.
                         </td>
                       </tr>
                     )}

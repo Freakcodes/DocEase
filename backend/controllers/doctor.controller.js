@@ -308,7 +308,6 @@ const updateDoctorProfile = async (req, res) => {
 
 const appointmentDetails = async (req, res) => {
   try {
-
     const { id } = req.params;
 
     // Check ID
@@ -335,14 +334,43 @@ const appointmentDetails = async (req, res) => {
       success: true,
       appointment,
     });
-
   } catch (error) {
-
     return res.json({
       success: false,
       message: error.message,
     });
+  }
+};
 
+const getUserAppointmentHistory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id) {
+      return res.json({
+        success: false,
+        message: "UserID is required",
+      });
+    }
+    const appointments = await appointmentModel.find({
+      userId:id,
+    });
+
+    if (!appointments) {
+      return res.json({
+        success: false,
+        message: "Previous Appointments not found",
+      });
+    }
+
+    return res.json({
+      success: true,
+      appointments,
+    });
+  } catch (error) {
+    return res.json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 export {
@@ -354,5 +382,6 @@ export {
   dashboardData,
   getDoctorProfile,
   updateDoctorProfile,
-  appointmentDetails
+  appointmentDetails,
+  getUserAppointmentHistory
 };

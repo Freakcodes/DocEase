@@ -29,11 +29,7 @@ const appointmentSchema = new Schema({
       },
     ],
 
-    tests: [
-      {
-        name: String,
-      },
-    ],
+   tests: [String],
 
     followUpDate: String, // keep consistent with your date format
     createdAt: { type: Date, default: Date.now },
