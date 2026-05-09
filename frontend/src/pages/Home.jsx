@@ -5,6 +5,7 @@ import CTASection from "../components/CTASection";
 import DoctorsToBook from "../components/DoctorsToBook";
 import SpecialtySection from "../components/SpecialtySection";
 import Doctors from "./Doctors";
+import AIHealthAssistant from "../components/AIHealthAssistant";
 
 const Home = () => {
 
@@ -49,10 +50,11 @@ const Home = () => {
       
     </div>
     <SpecialtySection/>
-
+    <AIHealthAssistant/>
     <DoctorsToBook/>
-
+    
     <CTASection/>
+
     </div>
   );
 };

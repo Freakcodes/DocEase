@@ -9,7 +9,12 @@ import razorpay from "razorpay";
 import crypto from "crypto";
 import { log } from "console";
 import sendEmail from "../utils/sendEmail.js";
+import { GoogleGenAI } from "@google/genai";
+// import doctorModel from "../models/doctor.model.js";
 
+const ai = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY,
+});
 const registerUser = async (req, res) => {
   const { name, email, password } = req.body;
   console.log(name);
@@ -358,6 +363,173 @@ const resetPassword = async (req, res) => {
     });
   }
 };
+
+
+
+const aiHealthAssistant = async (req, res) => {
+  try {
+
+    const { symptoms, age, gender, duration } = req.body;
+
+    // =========================
+    // VALIDATION
+    // =========================
+    if (!symptoms || symptoms.trim() === "") {
+      return res.json({
+        success: false,
+        message: "Symptoms are required",
+      });
+    }
+
+    // =========================
+    // EMERGENCY DETECTION
+    // =========================
+    const emergencyKeywords = [
+      "chest pain",
+      "heart attack",
+      "stroke",
+      "unconscious",
+      "difficulty breathing",
+      "breathing difficulty",
+      "suicide",
+      "severe bleeding",
+      "blood vomiting",
+      "seizure",
+      "fainted",
+    ];
+
+    const lowerSymptoms = symptoms.toLowerCase();
+
+    const emergencyDetected = emergencyKeywords.some((keyword) =>
+      lowerSymptoms.includes(keyword)
+    );
+
+    if (emergencyDetected) {
+      return res.json({
+        success: true,
+        emergency: true,
+        aiResponse: {
+          urgency: "High",
+          message:
+            "Your symptoms may indicate a medical emergency. Please seek immediate medical attention immediately.",
+          disclaimer:
+            "This response is AI-generated and should not replace professional medical advice.",
+        },
+        doctors: [],
+      });
+    }
+
+    // =========================
+    // AI PROMPT
+    // =========================
+    const prompt = `
+You are an AI healthcare assistant.
+
+IMPORTANT RULES:
+- You are NOT a doctor
+- NEVER provide confirmed diagnosis
+- NEVER prescribe medicines
+- Keep response safe and beginner friendly
+- Use only common possible conditions
+- Return ONLY valid JSON
+- Do NOT add markdown
+- Do NOT add backticks
+
+Choose recommended_specialist ONLY from this list:
+
+[
+  "General Physician",
+  "Cardiologist",
+  "Dermatologist",
+  "Neurologist",
+  "Orthopedic",
+  "ENT",
+  "Psychiatrist",
+  "Pediatrician",
+  "Gynecologist",
+  "Gastroenterologist",
+  "Pulmonologist"
+]
+
+Return JSON in this exact structure:
+
+{
+  "possible_conditions": [],
+  "recommended_specialist": "",
+  "urgency": "",
+  "precautions": [],
+  "emergency_signs": [],
+  "summary": "",
+  "disclaimer": ""
+}
+
+User Details:
+Age: ${age}
+Gender: ${gender}
+Duration: ${duration}
+
+Symptoms:
+${symptoms}
+`;
+
+    // =========================
+    // GEMINI RESPONSE
+    // =========================
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+    });
+
+    let rawText = response.text;
+
+    // Remove accidental markdown
+    rawText = rawText
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
+
+    // =========================
+    // PARSE JSON
+    // =========================
+    let parsedResponse;
+
+    try {
+      parsedResponse = JSON.parse(rawText);
+    } catch (parseError) {
+
+      return res.json({
+        success: false,
+        message: "Failed to parse AI response",
+      });
+
+    }
+
+    // =========================
+    // FETCH DOCTORS
+    // =========================
+    const doctors = await doctorModel.find({
+      speciality: parsedResponse.recommended_specialist,
+    });
+
+    // =========================
+    // RESPONSE
+    // =========================
+    return res.json({
+      success: true,
+      emergency: false,
+      aiResponse: parsedResponse,
+      doctors,
+    });
+
+  } catch (error) {
+
+    return res.json({
+      success: false,
+      message: error.message,
+    });
+
+  }
+};
 export {
   registerUser,
   loginUser,
@@ -370,5 +542,6 @@ export {
   verifyRazorPay,
   forgotPassword,
   resetPassword,
-  getAppointment
+  getAppointment,
+  aiHealthAssistant
 };
