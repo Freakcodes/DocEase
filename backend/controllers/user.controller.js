@@ -10,6 +10,10 @@ import crypto from "crypto";
 import { log } from "console";
 import sendEmail from "../utils/sendEmail.js";
 import { GoogleGenAI } from "@google/genai";
+import fs from "fs";
+// import pdfParse from "pdf-parse";
+import { PDFParse } from "pdf-parse";
+
 // import doctorModel from "../models/doctor.model.js";
 
 const ai = new GoogleGenAI({
@@ -364,11 +368,188 @@ const resetPassword = async (req, res) => {
   }
 };
 
+//ai report analysis..
+const analyzeReport = async (req, res) => {
+  try {
+    // File received from multer
+    const file = req.file;
 
+    // No file uploaded
+    if (!file) {
+      return res.status(400).json({
+        success: false,
+        message: "No file uploaded",
+      });
+    }
+    //PDF file path
+    const filePath = file.path;
+
+    //Read PDF
+    const dataBuffer = fs.readFileSync(filePath);
+
+    const parser = new PDFParse({ url: filePath });
+
+    const result = await parser.getText();
+    console.log("Uploaded File:");
+    console.log(file);
+    console.log("pdf parsed data");
+    const cleanedText = result.text
+      .replace(/\t/g, " ")
+      .replace(/\r/g, "")
+      .trim();
+
+    // console.log(cleanedText);
+
+    //now ai prompt
+    const prompt = `
+You are an AI medical report analysis assistant.
+
+Analyze the following medical report carefully.
+
+Return ONLY valid JSON.
+
+STRICT JSON FORMAT:
+
+{
+  "report_type": "string",
+  "summary": "string",
+
+  "abnormalities": [
+    {
+      "test": "string",
+      "value": "string",
+      "reference_range": "string",
+      "status": "High | Low | Abnormal | Critical",
+      "reason": "simple patient friendly explanation"
+    }
+  ],
+
+  "possible_concerns": [
+    "string"
+  ],
+
+  "precautions": [
+    "string"
+  ],
+
+  "recommended_specialist": "string",
+
+  "doctor_consultation_needed": true
+}
+
+IMPORTANT RULES:
+
+- Return ONLY valid JSON
+- Do NOT return markdown
+- Do NOT add explanation outside JSON
+- Do NOT add HTML
+- Do NOT add extra keys
+- Always follow the exact schema
+- abnormalities MUST always be an array of objects
+- possible_concerns MUST always be an array of strings
+- precautions MUST always be an array of strings
+- doctor_consultation_needed MUST always be boolean
+
+ABNORMALITY RULES:
+
+- Include ONLY abnormal or borderline abnormal values
+- Ignore clearly normal values
+- status should be:
+  - "High"
+  - "Low"
+  - "Abnormal"
+  - "Critical"
+
+- Keep reason very short and simple
+- Example:
+
+{
+  "test": "WBC Count",
+  "value": "10570 /cmm",
+  "reference_range": "4000 - 10000 /cmm",
+  "status": "High",
+  "reason": "White blood cell count is slightly elevated."
+}
+
+SUMMARY RULES:
+
+- Keep summary short
+- Maximum 3-4 sentences
+- Use simple patient-friendly language
+- Do not give final diagnosis
+- Mention major findings only
+
+SPECIALIST RULES:
+
+Examples:
+- Cardiologist
+- Diabetologist
+- General Physician
+- Hematologist
+- Endocrinologist
+
+CONSULTATION RULES:
+
+Return true if:
+- diabetes indicators present
+- very abnormal values exist
+- multiple abnormalities exist
+- critical findings exist
+
+Otherwise return false.
+
+Medical Report:
+${cleanedText}
+`;
+
+     // =========================
+    // GEMINI RESPONSE
+    // =========================
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+    });
+
+     let rawText = response.text;
+
+    // Remove accidental markdown
+    rawText = rawText
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
+
+    // =========================
+    // PARSE JSON
+    // =========================
+    let parsedResponse;
+
+    try {
+      parsedResponse = JSON.parse(rawText);
+    } catch (parseError) {
+      return res.json({
+        success: false,
+        message: "Failed to parse AI response",
+      });
+    }
+
+    console.log(parsedResponse);
+    
+    return res.status(200).json({
+      success: true,
+      data:parsedResponse
+    });
+  } catch (error) {
+    console.log(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Server Error",
+    });
+  }
+};
 
 const aiHealthAssistant = async (req, res) => {
   try {
-
     const { symptoms, age, gender, duration } = req.body;
 
     // =========================
@@ -401,7 +582,7 @@ const aiHealthAssistant = async (req, res) => {
     const lowerSymptoms = symptoms.toLowerCase();
 
     const emergencyDetected = emergencyKeywords.some((keyword) =>
-      lowerSymptoms.includes(keyword)
+      lowerSymptoms.includes(keyword),
     );
 
     if (emergencyDetected) {
@@ -496,12 +677,10 @@ ${symptoms}
     try {
       parsedResponse = JSON.parse(rawText);
     } catch (parseError) {
-
       return res.json({
         success: false,
         message: "Failed to parse AI response",
       });
-
     }
 
     // =========================
@@ -520,14 +699,11 @@ ${symptoms}
       aiResponse: parsedResponse,
       doctors,
     });
-
   } catch (error) {
-
     return res.json({
       success: false,
       message: error.message,
     });
-
   }
 };
 export {
@@ -543,5 +719,6 @@ export {
   forgotPassword,
   resetPassword,
   getAppointment,
-  aiHealthAssistant
+  aiHealthAssistant,
+  analyzeReport,
 };

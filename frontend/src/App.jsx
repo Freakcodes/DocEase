@@ -16,6 +16,7 @@ import { AppContext } from './context/AppContext';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import AppointmentDetails from './pages/AppointmentDetails';
+import AiReportAnalysis from './pages/AiReportAnalysis';
 const App = () => {
   const {token}=useContext(AppContext);
   return (
@@ -33,6 +34,7 @@ const App = () => {
         <Route path='/my-appointments/:id' element={<AppointmentDetails/>}/>
         <Route path='/doctors' element={<Doctors/>}/>
         <Route path='/doctors/:speciality' element={<Doctors/>}/>
+        <Route path='/ai-report' element={<AiReportAnalysis/>}/>
         <Route 
           path='/appointments' 
           element={token ? <MyAppointments /> : <Navigate to="/login" />} 

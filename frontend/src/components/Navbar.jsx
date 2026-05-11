@@ -45,6 +45,10 @@ const Navbar = () => {
             <NavLink to="/doctors" onClick={() => setMenuOpen(false)}>Doctors</NavLink>
           </li>
 
+          <li>
+            <NavLink to="/ai-report" onClick={() => setMenuOpen(false)}>AI Report Analysis</NavLink>
+          </li>
+
           {/* Mobile Auth/Profile */}
           <li className="mobile-auth">
             {token ? (
