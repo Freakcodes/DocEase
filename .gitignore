@@ -18,8 +18,10 @@ pids
 # Coverage directories
 coverage/
 *.lcov
-
+# Backend uploads
+backend/uploads/
 # Build output
+
 dist/
 build/
 out/

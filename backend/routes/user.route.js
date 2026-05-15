@@ -20,5 +20,5 @@ userRouter.use('/appointment',authUser,getAppointment);
 //ai routes
 userRouter.post('/ai-health-assistant',aiHealthAssistant);
 
-userRouter.post('/ai-report-analysis',upload.single("report"),analyzeReport);
+userRouter.post('/ai-report-analysis',upload.array("reports",5),analyzeReport);
 export default userRouter

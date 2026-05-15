@@ -13,6 +13,7 @@ import { GoogleGenAI } from "@google/genai";
 import fs from "fs";
 // import pdfParse from "pdf-parse";
 import { PDFParse } from "pdf-parse";
+import { CombineIcon } from "lucide-react";
 
 // import doctorModel from "../models/doctor.model.js";
 
@@ -372,36 +373,89 @@ const resetPassword = async (req, res) => {
 const analyzeReport = async (req, res) => {
   try {
     // File received from multer
-    const file = req.file;
+    const files = req.files;
 
-    // No file uploaded
-    if (!file) {
+    // No files uploaded
+    if (!files || files.length === 0) {
       return res.status(400).json({
         success: false,
-        message: "No file uploaded",
+        message: "No files uploaded",
       });
     }
-    //PDF file path
-    const filePath = file.path;
 
-    //Read PDF
-    const dataBuffer = fs.readFileSync(filePath);
+    let combinedText = "";
 
-    const parser = new PDFParse({ url: filePath });
+    // Loop through all uploaded files
+    for (const file of files) {
+      const filePath = file.path;
 
-    const result = await parser.getText();
-    console.log("Uploaded File:");
-    console.log(file);
-    console.log("pdf parsed data");
-    const cleanedText = result.text
-      .replace(/\t/g, " ")
-      .replace(/\r/g, "")
-      .trim();
+      // IMAGE FILES
+      if (file.mimetype.startsWith("image/")) {
+        const imageBuffer = fs.readFileSync(filePath);
 
-    // console.log(cleanedText);
+        const base64Image = imageBuffer.toString("base64");
 
-    //now ai prompt
-    const prompt = `
+        const response = await ai.models.generateContent({
+          model: "gemini-2.5-flash",
+
+          contents: [
+            {
+              role: "user",
+              parts: [
+                {
+                  text: `
+Extract all readable text from this medical report image.
+
+Rules:
+- Return only extracted text
+- Preserve formatting as much as possible
+- Do not summarize
+- Do not explain anything
+`,
+                },
+
+                {
+                  inlineData: {
+                    mimeType: file.mimetype,
+                    data: base64Image,
+                  },
+                },
+              ],
+            },
+          ],
+        });
+
+        const extractedText = response.text;
+
+        combinedText += extractedText + "\n\n";
+
+        // Clean text
+      } else if (file.mimetype === "application/pdf") {
+        console.log("PDF uploaded");
+
+        const dataBuffer = fs.readFileSync(filePath);
+
+        const parser = new PDFParse({ url: filePath });
+
+        const result = await parser.getText();
+
+        combinedText = result.text;
+      } else {
+        return res.status(400).json({
+          success: false,
+          message: "Unsupported file type",
+        });
+      }
+    
+      // CLEAN TEXT
+      const cleanedText = combinedText
+        .replace(/\t/g, " ")
+        .replace(/\r/g, "")
+        .trim();
+      console.log(combinedText);
+      
+      //now ai prompt
+      const prompt = `
 You are an AI medical report analysis assistant.
 
 Analyze the following medical report carefully.
@@ -502,42 +556,43 @@ Medical Report:
 ${cleanedText}
 `;
 
-     // =========================
-    // GEMINI RESPONSE
-    // =========================
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-    });
+      // =========================
+      // GEMINI RESPONSE
+      // =========================
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+      });
 
-     let rawText = response.text;
+      let rawText = response.text;
 
-    // Remove accidental markdown
-    rawText = rawText
-      .replace(/```json/g, "")
-      .replace(/```/g, "")
-      .trim();
+      // Remove accidental markdown
+      rawText = rawText
+        .replace(/```json/g, "")
+        .replace(/```/g, "")
+        .trim();
 
-    // =========================
-    // PARSE JSON
-    // =========================
-    let parsedResponse;
+      // =========================
+      // PARSE JSON
+      // =========================
+      let parsedResponse;
 
-    try {
-      parsedResponse = JSON.parse(rawText);
-    } catch (parseError) {
-      return res.json({
-        success: false,
-        message: "Failed to parse AI response",
+      try {
+        parsedResponse = JSON.parse(rawText);
+      } catch (parseError) {
+        return res.json({
+          success: false,
+          message: "Failed to parse AI response",
+        });
+      }
+
+      console.log(parsedResponse);
+
+      return res.status(200).json({
+        success: true,
+        data: parsedResponse,
       });
     }
-
-    console.log(parsedResponse);
-    
-    return res.status(200).json({
-      success: true,
-      data:parsedResponse
-    });
   } catch (error) {
     console.log(error);
 
