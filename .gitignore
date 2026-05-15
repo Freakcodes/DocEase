@@ -19,7 +19,8 @@ pids
 coverage/
 *.lcov
 # Backend uploads
-backend/uploads/
+backend/uploads/*
+!backend/uploads/.gitkeep
 # Build output
 
 dist/

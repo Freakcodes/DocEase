@@ -13,6 +13,7 @@ import { GoogleGenAI } from "@google/genai";
 import fs from "fs";
 // import pdfParse from "pdf-parse";
 import { PDFParse } from "pdf-parse";
+// import pdfParse from "pdf-parse"
 // import { CombineIcon } from "lucide-react";
 
 // import doctorModel from "../models/doctor.model.js";
@@ -438,7 +439,8 @@ Rules:
         const parser = new PDFParse({ url: filePath });
 
         const result = await parser.getText();
-
+         
+          
         combinedText = result.text;
       } else {
         return res.status(400).json({
