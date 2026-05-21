@@ -13,6 +13,11 @@ import { GoogleGenAI } from "@google/genai";
 import fs from "fs";
 // import pdfParse from "pdf-parse";
 import { PDFParse } from "pdf-parse";
+import reportModel from "../models/report.model.js";
+import { pineconeIndex } from "../config/pinecone.js";
+import { pipeline } from "@xenova/transformers";
+import { text } from "stream/consumers";
+// import { embed } from "@pinecone-database/pinecone/dist/inference/embed.js";
 // import pdfParse from "pdf-parse"
 // import { CombineIcon } from "lucide-react";
 
@@ -371,105 +376,476 @@ const resetPassword = async (req, res) => {
 };
 
 //ai report analysis..
+// const analyzeReport = async (req, res) => {
+//   try {
+//     // File received from multer
+//     const files = req.files;
+//     const userId = req.userId;
+//     // No files uploaded
+//     if (!files || files.length === 0) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "No files uploaded",
+//       });
+//     }
+
+//     let combinedText = "";
+//     let filePath = "";
+//     // Loop through all uploaded files
+//     for (const file of files) {
+//       filePath = file.path;
+
+//       // IMAGE FILES
+//       if (file.mimetype.startsWith("image/")) {
+//         const imageBuffer = fs.readFileSync(filePath);
+
+//         const base64Image = imageBuffer.toString("base64");
+
+//         const response = await ai.models.generateContent({
+//           model: "gemini-2.5-flash",
+
+//           contents: [
+//             {
+//               role: "user",
+//               parts: [
+//                 {
+//                   text: `
+// Extract all readable text from this medical report image.
+
+// Rules:
+// - Return only extracted text
+// - Preserve formatting as much as possible
+// - Do not summarize
+// - Do not explain anything
+// `,
+//                 },
+
+//                 {
+//                   inlineData: {
+//                     mimeType: file.mimetype,
+//                     data: base64Image,
+//                   },
+//                 },
+//               ],
+//             },
+//           ],
+//         });
+
+//         const extractedText = response.text;
+
+//         combinedText += extractedText + "\n\n";
+
+//         // Clean text
+//       } else if (file.mimetype === "application/pdf") {
+//         console.log("PDF uploaded");
+
+//         const dataBuffer = fs.readFileSync(filePath);
+
+//         const parser = new PDFParse({ url: filePath });
+
+//         const result = await parser.getText();
+
+//         combinedText = result.text;
+//       } else {
+//         return res.status(400).json({
+//           success: false,
+//           message: "Unsupported file type",
+//         });
+//       }
+
+//       // CLEAN TEXT FALLBACK IF SOME ERROR
+//       // const cleanedText = combinedText
+//       //   .replace(/\t/g, " ")
+//       //   .replace(/\r/g, "")
+//       //   .trim();
+
+//       const cleanedText = combinedText
+//         // remove tabs
+//         .replace(/\t/g, " ")
+
+//         // remove carriage returns
+//         .replace(/\r/g, "")
+
+//         // replace multiple newlines with single newline
+//         .replace(/\n{2,}/g, "\n")
+
+//         // join broken lines inside sentences
+//         .replace(/([a-zA-Z,])\n([a-zA-Z])/g, "$1 $2")
+
+//         // remove extra spaces
+//         .replace(/ {2,}/g, " ")
+
+//         // trim start/end
+//         .trim();
+
+//       //now ai prompt
+//       const prompt = `
+// You are an AI medical report analysis assistant.
+
+// Analyze the following medical report carefully.
+
+// Return ONLY valid JSON.
+
+// STRICT JSON FORMAT:
+
+// {
+//   "report_type": "string",
+//   "summary": "string",
+
+//   "abnormalities": [
+//     {
+//       "test": "string",
+//       "value": "string",
+//       "reference_range": "string",
+//       "status": "High | Low | Abnormal | Critical",
+//       "reason": "simple patient friendly explanation"
+//     }
+//   ],
+
+//   "possible_concerns": [
+//     "string"
+//   ],
+
+//   "precautions": [
+//     "string"
+//   ],
+
+//   "recommended_specialist": "string",
+
+//   "doctor_consultation_needed": true
+// }
+
+// IMPORTANT RULES:
+
+// - Return ONLY valid JSON
+// - Do NOT return markdown
+// - Do NOT add explanation outside JSON
+// - Do NOT add HTML
+// - Do NOT add extra keys
+// - Always follow the exact schema
+// - abnormalities MUST always be an array of objects
+// - possible_concerns MUST always be an array of strings
+// - precautions MUST always be an array of strings
+// - doctor_consultation_needed MUST always be boolean
+
+// ABNORMALITY RULES:
+
+// - Include ONLY abnormal or borderline abnormal values
+// - Ignore clearly normal values
+// - status should be:
+//   - "High"
+//   - "Low"
+//   - "Abnormal"
+//   - "Critical"
+
+// - Keep reason very short and simple
+// - Example:
+
+// {
+//   "test": "WBC Count",
+//   "value": "10570 /cmm",
+//   "reference_range": "4000 - 10000 /cmm",
+//   "status": "High",
+//   "reason": "White blood cell count is slightly elevated."
+// }
+
+// SUMMARY RULES:
+
+// - Keep summary short
+// - Maximum 3-4 sentences
+// - Use simple patient-friendly language
+// - Do not give final diagnosis
+// - Mention major findings only
+
+// SPECIALIST RULES:
+
+// Examples:
+// - Cardiologist
+// - Diabetologist
+// - General Physician
+// - Hematologist
+// - Endocrinologist
+
+// CONSULTATION RULES:
+
+// Return true if:
+// - diabetes indicators present
+// - very abnormal values exist
+// - multiple abnormalities exist
+// - critical findings exist
+
+// Otherwise return false.
+
+// Medical Report:
+// ${cleanedText}
+// `;
+
+//       // =========================
+//       // GEMINI RESPONSE
+//       // =========================
+//       const response = await ai.models.generateContent({
+//         model: "gemini-2.5-flash",
+//         contents: prompt,
+//       });
+
+//       let rawText = response.text;
+
+//       // Remove accidental markdown
+//       rawText = rawText
+//         .replace(/```json/g, "")
+//         .replace(/```/g, "")
+//         .trim();
+
+//       // =========================
+//       // PARSE JSON
+//       // =========================
+//       let parsedResponse;
+
+//       try {
+//         parsedResponse = JSON.parse(rawText);
+//       } catch (parseError) {
+//         return res.json({
+//           success: false,
+//           message: "Failed to parse AI response",
+//         });
+//       }
+
+//       //parsedResponse means the cleaned AI response
+//       if (!userId) {
+//         return res.status(200).json({
+//           success: true,
+//           data: parsedResponse,
+//         });
+//       }
+//       const report = await reportModel.create({
+//         userId,
+
+//         reportType: parsedResponse.report_type,
+
+//         fileUrl: filePath,
+
+//         extractedText: cleanedText,
+
+//         aiAnalysis: parsedResponse,
+
+//         embeddingStored: false,
+//       });
+
+//       const textToEmbed = `
+// Report Type: ${parsedResponse.report_type}
+
+// Summary:
+// ${parsedResponse.summary}
+
+// Abnormalities:
+// ${parsedResponse.abnormalities
+//   .map((a) => `${a.test}: ${a.value} (${a.status}) - ${a.reason}`)
+//   .join("\n")}
+
+// Possible Concerns:
+// ${parsedResponse.possible_concerns.join("\n")}
+
+// Precautions:
+// ${parsedResponse.precautions.join("\n")}
+
+// Recommended Specialist:
+// ${parsedResponse.recommended_specialist}
+
+// Doctor Consultation Needed:
+// ${parsedResponse.doctor_consultation_needed}
+// `;
+
+// console.log(textToEmbed);
+
+//       const embedder = await pipeline(
+//         "feature-extraction",
+//         "Xenova/bge-base-en-v1.5",
+//       );
+
+//       const output = await embedder(textToEmbed, {
+//         pooling: "mean",
+//         normalize: true,
+//       });
+
+//       const embedding = Array.from(output.data);
+//       console.log(embedding);
+//       return ;
+//       // store embeddings in Pinecone
+//       await pineconeIndex.upsert({
+//         records: [
+//           {
+//             id: report._id.toString(),
+//             values: embedding,
+//             metadata: {
+//               userId: userId.toString(),
+//               reportId: report._id.toString(),
+//               reportType: "Medical Report",
+//               reportText: cleanedText.slice(0, 8000),
+//             },
+//           },
+//         ],
+//       });
+//       console.log("uploaded in vector DB");
+
+//       //update status
+
+//       report.embeddingStored = true;
+
+//       await report.save();
+
+//       return res.status(200).json({
+//         success: true,
+//         data: parsedResponse,
+//         reportId: report._id,
+//       });
+//     }
+//   } catch (error) {
+//     console.log(error);
+
+//     return res.status(500).json({
+//       success: false,
+//       message: "Server Error",
+//     });
+//   }
+// };
+
+//prev version of the 
+// ─── Singleton embedder (initialize once, reuse across requests) ───────────────
+let embedderInstance = null;
+async function getEmbedder() {
+  if (!embedderInstance) {
+    embedderInstance = await pipeline(
+      "feature-extraction",
+      "Xenova/bge-base-en-v1.5",
+    );
+  }
+  return embedderInstance;
+}
+
+// ─── Chunk the report text into overlapping sections ──────────────────────────
+function chunkText(text, chunkSize = 300, overlap = 50) {
+  const words = text.split(" ");
+  const chunks = [];
+  for (let i = 0; i < words.length; i += chunkSize - overlap) {
+    const chunk = words.slice(i, i + chunkSize).join(" ");
+    if (chunk.trim().length > 0) chunks.push(chunk);
+    if (i + chunkSize >= words.length) break;
+  }
+  return chunks;
+}
+
+// ─── Extract numeric key values for comparison ────────────────────────────────
+function extractKeyValues(abnormalities = []) {
+  const kv = {};
+  for (const ab of abnormalities) {
+    // e.g. "10570 /cmm" → extract the number
+    const numMatch = String(ab.value).match(/[\d.]+/);
+    kv[ab.test] = {
+      value: numMatch ? parseFloat(numMatch[0]) : ab.value,
+      unit: ab.value,
+      status: ab.status,
+    };
+  }
+  return kv;
+}
+
+// ─── Get how many times this user has uploaded this report type ───────────────
+async function getReportVersion(userId, reportType) {
+  const count = await reportModel.countDocuments({ userId, reportType });
+  return count + 1;
+}
+
+// ─── Compare current vs previous key values ───────────────────────────────────
+function buildComparison(prevKeyValues, currKeyValues, prevUploadedAt) {
+  const changes = [];
+  for (const [param, curr] of Object.entries(currKeyValues)) {
+    if (prevKeyValues[param]) {
+      const prev = prevKeyValues[param];
+      const delta =
+        typeof curr.value === "number" && typeof prev.value === "number"
+          ? (curr.value - prev.value).toFixed(2)
+          : null;
+
+      const trend =
+        prev.status !== "Normal" && curr.status === "Normal"
+          ? "improved"
+          : prev.status === "Normal" && curr.status !== "Normal"
+            ? "worsened"
+            : prev.status === curr.status
+              ? "unchanged"
+              : "changed";
+
+      changes.push({ param, previous: prev, current: curr, delta, trend });
+    }
+  }
+  return {
+    previousReportDate: new Date(prevUploadedAt).toLocaleDateString(),
+    changes,
+  };
+}
+
+// ─── Main controller ──────────────────────────────────────────────────────────
 const analyzeReport = async (req, res) => {
   try {
-    // File received from multer
     const files = req.files;
+    const userId = req.userId;
 
-    // No files uploaded
     if (!files || files.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "No files uploaded",
-      });
+      return res.status(400).json({ success: false, message: "No files uploaded" });
     }
 
+    // ── Step 1: Extract text from ALL files first, THEN process ──────────────
     let combinedText = "";
 
-    // Loop through all uploaded files
     for (const file of files) {
       const filePath = file.path;
 
-      // IMAGE FILES
       if (file.mimetype.startsWith("image/")) {
-        const imageBuffer = fs.readFileSync(filePath);
-
-        const base64Image = imageBuffer.toString("base64");
-
+        const base64Image = fs.readFileSync(filePath).toString("base64");
         const response = await ai.models.generateContent({
           model: "gemini-2.5-flash",
-
-          contents: [
-            {
-              role: "user",
-              parts: [
-                {
-                  text: `
-Extract all readable text from this medical report image.
-
-Rules:
-- Return only extracted text
-- Preserve formatting as much as possible
-- Do not summarize
-- Do not explain anything
-`,
-                },
-
-                {
-                  inlineData: {
-                    mimeType: file.mimetype,
-                    data: base64Image,
-                  },
-                },
-              ],
-            },
-          ],
+          contents: [{
+            role: "user",
+            parts: [
+              { text: "Extract all readable text from this medical report image.\nRules:\n- Return only extracted text\n- Preserve formatting\n- Do not summarize\n- Do not explain" },
+              { inlineData: { mimeType: file.mimetype, data: base64Image } },
+            ],
+          }],
         });
+        combinedText += response.text + "\n\n";
 
-        const extractedText = response.text;
-
-        combinedText += extractedText + "\n\n";
-
-        // Clean text
       } else if (file.mimetype === "application/pdf") {
-        console.log("PDF uploaded");
-
         const dataBuffer = fs.readFileSync(filePath);
+      
 
         const parser = new PDFParse({ url: filePath });
 
         const result = await parser.getText();
-         
-          
-        combinedText = result.text;
+        combinedText += result.text + "\n\n";
+
       } else {
-        return res.status(400).json({
-          success: false,
-          message: "Unsupported file type",
-        });
+        return res.status(400).json({ success: false, message: "Unsupported file type" });
       }
-    
-      // CLEAN TEXT
-      const cleanedText = combinedText
-        .replace(/\t/g, " ")
-        .replace(/\r/g, "")
-        .trim();
-      console.log(combinedText);
-      
-      //now ai prompt
-      const prompt = `
-You are an AI medical report analysis assistant.
+    }
 
+    // ── Step 2: Clean text (once, after all files) ────────────────────────────
+    const cleanedText = combinedText
+      .replace(/\t/g, " ")
+      .replace(/\r/g, "")
+      .replace(/\n{2,}/g, "\n")
+      .replace(/([a-zA-Z,])\n([a-zA-Z])/g, "$1 $2")
+      .replace(/ {2,}/g, " ")
+      .trim();
+
+    // ── Step 3: AI analysis ───────────────────────────────────────────────────
+    const prompt = `You are an AI medical report analysis assistant.
 Analyze the following medical report carefully.
-
 Return ONLY valid JSON.
 
 STRICT JSON FORMAT:
-
 {
   "report_type": "string",
   "summary": "string",
-
   "abnormalities": [
     {
       "test": "string",
@@ -479,129 +855,286 @@ STRICT JSON FORMAT:
       "reason": "simple patient friendly explanation"
     }
   ],
-
-  "possible_concerns": [
-    "string"
-  ],
-
-  "precautions": [
-    "string"
-  ],
-
+  "possible_concerns": ["string"],
+  "precautions": ["string"],
   "recommended_specialist": "string",
-
   "doctor_consultation_needed": true
 }
 
 IMPORTANT RULES:
-
-- Return ONLY valid JSON
-- Do NOT return markdown
-- Do NOT add explanation outside JSON
-- Do NOT add HTML
-- Do NOT add extra keys
-- Always follow the exact schema
-- abnormalities MUST always be an array of objects
-- possible_concerns MUST always be an array of strings
-- precautions MUST always be an array of strings
-- doctor_consultation_needed MUST always be boolean
-
-ABNORMALITY RULES:
-
-- Include ONLY abnormal or borderline abnormal values
-- Ignore clearly normal values
-- status should be:
-  - "High"
-  - "Low"
-  - "Abnormal"
-  - "Critical"
-
-- Keep reason very short and simple
-- Example:
-
-{
-  "test": "WBC Count",
-  "value": "10570 /cmm",
-  "reference_range": "4000 - 10000 /cmm",
-  "status": "High",
-  "reason": "White blood cell count is slightly elevated."
-}
-
-SUMMARY RULES:
-
-- Keep summary short
-- Maximum 3-4 sentences
-- Use simple patient-friendly language
-- Do not give final diagnosis
-- Mention major findings only
-
-SPECIALIST RULES:
-
-Examples:
-- Cardiologist
-- Diabetologist
-- General Physician
-- Hematologist
-- Endocrinologist
-
-CONSULTATION RULES:
-
-Return true if:
-- diabetes indicators present
-- very abnormal values exist
-- multiple abnormalities exist
-- critical findings exist
-
-Otherwise return false.
+- Return ONLY valid JSON, no markdown, no explanation
+- abnormalities MUST be array of objects (only abnormal/borderline values)
+- possible_concerns and precautions MUST be arrays of strings
+- doctor_consultation_needed MUST be boolean
 
 Medical Report:
-${cleanedText}
-`;
+${cleanedText}`;
 
-      // =========================
-      // GEMINI RESPONSE
-      // =========================
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: prompt,
-      });
-
-      let rawText = response.text;
-
-      // Remove accidental markdown
-      rawText = rawText
-        .replace(/```json/g, "")
-        .replace(/```/g, "")
-        .trim();
-
-      // =========================
-      // PARSE JSON
-      // =========================
-      let parsedResponse;
-
-      try {
-        parsedResponse = JSON.parse(rawText);
-      } catch (parseError) {
-        return res.json({
-          success: false,
-          message: "Failed to parse AI response",
-        });
-      }
-
-      console.log(parsedResponse);
-
-      return res.status(200).json({
-        success: true,
-        data: parsedResponse,
-      });
-    }
-  } catch (error) {
-    console.log(error);
-
-    return res.status(500).json({
-      success: false,
-      message: "Server Error",
+    const aiResponse = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
     });
+
+    let rawText = aiResponse.text.replace(/```json/g, "").replace(/```/g, "").trim();
+
+    let parsedResponse;
+    try {
+      parsedResponse = JSON.parse(rawText);
+    } catch {
+      return res.status(500).json({ success: false, message: "Failed to parse AI response" });
+    }
+
+    // ── Step 4: Return early if no userId (guest user) ────────────────────────
+    if (!userId) {
+      return res.status(200).json({ success: true, data: parsedResponse });
+    }
+
+    // ── Step 5: Save report to MongoDB ────────────────────────────────────────
+    const report = await reportModel.create({
+      userId,
+      reportType: parsedResponse.report_type,        // was hardcoded before
+      fileUrl: files[0].path,
+      extractedText: cleanedText,
+      aiAnalysis: parsedResponse,
+      embeddingStored: false,
+    });
+
+    // ── Step 6: Build text to embed ───────────────────────────────────────────
+    const textToEmbed = `
+Report Type: ${parsedResponse.report_type}
+
+Summary:
+${parsedResponse.summary}
+
+Abnormalities:
+${parsedResponse.abnormalities.map((a) => `${a.test}: ${a.value} (${a.status}) - ${a.reason}`).join("\n")}
+
+Possible Concerns:
+${parsedResponse.possible_concerns.join("\n")}
+
+Precautions:
+${parsedResponse.precautions.join("\n")}
+
+Recommended Specialist: ${parsedResponse.recommended_specialist}
+Doctor Consultation Needed: ${parsedResponse.doctor_consultation_needed}
+`.trim();
+
+    // ── Step 7: Chunk + embed (batched, not one per chunk) ────────────────────
+    const chunks = chunkText(textToEmbed);
+    const embedder = await getEmbedder();             // reuses singleton
+
+    const embeddings = await Promise.all(
+      chunks.map(async (chunk) => {
+        const output = await embedder(chunk, { pooling: "mean", normalize: true });
+        return Array.from(output.data);
+      })
+    );
+
+    // ── Step 8: Build rich metadata ───────────────────────────────────────────
+    const reportVersion = await getReportVersion(userId, parsedResponse.report_type);
+    const keyValues = extractKeyValues(parsedResponse.abnormalities);
+    const uploadedAt = Date.now();
+
+    const records = chunks.map((chunk, i) => ({
+      id: `${report._id}-chunk-${i}`,
+      values: embeddings[i],
+      metadata: {
+        userId: userId.toString(),
+        reportId: report._id.toString(),
+        reportType: parsedResponse.report_type,      // was "Medical Report" before
+        reportVersion,                               // 1, 2, 3... for comparison
+        uploadedAt,                                  // timestamp for ordering
+        chunkIndex: i,
+        chunkText: chunk.slice(0, 1000),
+        abnormalTests: parsedResponse.abnormalities.map((a) => a.test),
+        keyValues: JSON.stringify(keyValues),        // numeric values for diffing
+      },
+    }));
+
+    // ── Step 9: Upsert all chunks to Pinecone ─────────────────────────────────
+    await pineconeIndex.upsert({ records });
+
+    report.embeddingStored = true;
+    await report.save();
+
+    // ── Step 10: Comparison — fetch previous report of same type ──────────────
+    let comparisonInsight = null;
+
+    if (reportVersion > 1) {
+      const dummyEmbedding = embeddings[0];          // use first chunk vector to query
+
+      const previousResults = await pineconeIndex.query({
+        vector: dummyEmbedding,
+        filter: {
+          userId: { $eq: userId.toString() },
+          reportType: { $eq: parsedResponse.report_type },
+          chunkIndex: { $eq: 0 },                    // only first chunks = one per report
+        },
+        topK: 5,
+        includeMetadata: true,
+      });
+
+      // Sort by uploadedAt, skip the report we just saved
+      const previousMatches = previousResults.matches
+        .filter((m) => m.metadata.reportId !== report._id.toString())
+        .sort((a, b) => b.metadata.uploadedAt - a.metadata.uploadedAt);
+
+      if (previousMatches.length > 0) {
+        const prev = previousMatches[0];
+        const prevKeyValues = JSON.parse(prev.metadata.keyValues || "{}");
+        comparisonInsight = buildComparison(prevKeyValues, keyValues, prev.metadata.uploadedAt);
+      }
+    }
+
+    // ── Step 11: Respond ──────────────────────────────────────────────────────
+    return res.status(200).json({
+      success: true,
+      data: parsedResponse,
+      reportId: report._id,
+      comparison: comparisonInsight,   // null on first upload, populated on subsequent
+    });
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+
+// =========================
+// RAG CHAT CONTROLLER
+// =========================
+const ragChat = async (userQuestion, reportId, userId, reportSummary = null, chatHistory = []) => {
+
+  // ── Step 1: Classify question type ─────────────────────────────────────────
+  const classifyResponse = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: `Classify this medical question into one of two categories:
+- "summary": broad/interpretive questions (key findings, what should I do, is this serious, next steps, overview, precautions, specialist)
+- "specific": specific questions about test values, measurements, or named findings
+
+Question: "${userQuestion}"
+Reply with ONLY one word: summary or specific`,
+  });
+
+  const questionType = classifyResponse.text.trim().toLowerCase();
+
+  // ── Step 2: Build conversation history string for context ──────────────────
+  const historyContext = chatHistory.length > 0
+    ? `Previous conversation:\n${chatHistory
+        .map((m) => `${m.role === "user" ? "Patient" : "Assistant"}: ${m.content}`)
+        .join("\n")}\n\n`
+    : "";
+
+  // ── Step 3: Summary path — answer directly from structured data ────────────
+  if (questionType === "summary" && reportSummary) {
+    const prompt = `You are a helpful medical assistant. Answer the patient's question using this structured report data.
+
+${historyContext}Report Type: ${reportSummary.report_type}
+Summary: ${reportSummary.summary}
+Abnormalities: ${reportSummary.abnormalities?.map((a) => `${a.test}: ${a.value} (${a.status}) — ${a.reason}`).join("; ")}
+Precautions: ${reportSummary.precautions?.join("; ")}
+Recommended Specialist: ${reportSummary.recommended_specialist}
+Doctor Consultation Needed: ${reportSummary.doctor_consultation_needed}
+
+Rules:
+- Simple, patient-friendly language
+- No diagnosis
+- Recommend doctor if findings are concerning
+- If the question refers to something said earlier in the conversation, use the history above
+
+Question: ${userQuestion}
+Answer:`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+    });
+    return { answer: response.text, type: "summary" };
+  }
+
+  // ── Step 4: Specific path — embed question and query Pinecone ──────────────
+  const embedder = await getEmbedder();                // fixed: uses singleton
+  const output = await embedder(userQuestion, { pooling: "mean", normalize: true });
+  const questionEmbedding = Array.from(output.data);
+
+  const results = await pineconeIndex.query({
+    vector: questionEmbedding,
+    topK: 5,
+    filter: {
+      reportId: reportId.toString(),
+      userId: userId.toString(),             // fixed: scoped to this user
+    },
+    includeMetadata: true,
+  });
+
+  const relevantMatches = results.matches?.filter((m) => m.score > 0.35) || [];
+
+  if (relevantMatches.length === 0) {
+    return {
+      answer: "I couldn't find specific information about that in your report. Try asking a broader question, or ask your doctor directly.",
+      type: "no_match",
+    };
+  }
+
+  // ── Step 5: Build context from chunks ──────────────────────────────────────
+  const context = relevantMatches
+    .map((match, i) =>
+      `Excerpt ${i + 1} (relevance: ${(match.score * 100).toFixed(1)}%):\n${match.metadata.chunkText}`,   // fixed: chunkText not reportText
+    )
+    .join("\n\n---\n\n");
+
+  // ── Step 6: Answer with history context ────────────────────────────────────
+  const prompt = `You are a helpful medical assistant. Answer based ONLY on the report excerpts below.
+
+${historyContext}Rules:
+- Simple, patient-friendly language
+- No diagnosis
+- If the answer isn't in the excerpts, say "I don't have enough information about that."
+- Recommend doctor if findings are concerning
+- If the question refers to something said earlier in the conversation, use the history above
+
+Medical report excerpts:
+${context}
+
+Question: ${userQuestion}
+Answer:`;
+
+  const response = await ai.models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: prompt,
+  });
+
+  return { answer: response.text, type: "specific" };
+};
+
+// ─── Route handler ────────────────────────────────────────────────────────────
+// backend — ragChat controller
+export const chatWithReports = async (req, res) => {
+  try {
+    const { question, reportId, chatHistory = [] } = req.body;
+    const userId = req.userId;
+
+    // Only fetch the report on the FIRST message (no history yet)
+    // Follow-up questions use chatHistory instead
+    let reportSummary = null;
+    if (chatHistory.length === 0) {
+      const report = await reportModel.findOne({ _id: reportId, userId });
+      if (!report) {
+        return res.status(404).json({ success: false, message: "Report not found" });
+      }
+      reportSummary = report.aiAnalysis;
+    }
+
+    const trimmedHistory = chatHistory.slice(-6);
+
+    const result = await ragChat(question, reportId, userId, reportSummary, trimmedHistory);
+
+    return res.status(200).json({ success: true, answer: result.answer, type: result.type });
+
+  } catch (error) {
+    console.error("RAG chat error:", error);
+    return res.status(500).json({ success: false, message: "Server Error" });
   }
 };
 

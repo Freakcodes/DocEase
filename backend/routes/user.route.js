@@ -1,7 +1,8 @@
 import express from "express";
-import { bookAppointment, cancelAppointments, forgotPassword, getAppointment, listAllAppointments, loginUser, paymentRazorpay, registerUser, resetPassword, updateUserProfile, userProfile, verifyRazorPay,aiHealthAssistant, analyzeReport } from "../controllers/user.controller.js";
+import { bookAppointment, cancelAppointments, forgotPassword, getAppointment, listAllAppointments, loginUser, paymentRazorpay, registerUser, resetPassword, updateUserProfile, userProfile, verifyRazorPay,aiHealthAssistant, analyzeReport,chatWithReports } from "../controllers/user.controller.js";
 import { authUser } from "../middlewares/user.middleware.js";
 import upload from "../middlewares/multer.middleware.js";
+import optionalAuth from "../middlewares/optionalAuth.middleware.js";
 // import { aiHealthAssistant } from "../controllers/adminChat.controller.js";
 const userRouter=express.Router();
 
@@ -20,5 +21,7 @@ userRouter.use('/appointment',authUser,getAppointment);
 //ai routes
 userRouter.post('/ai-health-assistant',aiHealthAssistant);
 
-userRouter.post('/ai-report-analysis',upload.array("reports",5),analyzeReport);
+userRouter.post('/ai-report-analysis',optionalAuth ,upload.array("reports",5),analyzeReport);
+userRouter.use('/chat',authUser,chatWithReports)
 export default userRouter
+

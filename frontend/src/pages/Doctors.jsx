@@ -2,35 +2,16 @@ import React, { useContext, useEffect, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { AppContext } from "../context/AppContext";
 import Shimmer from "../components/Shimmer";
+
 const Doctors = () => {
   const navigate = useNavigate();
   const { speciality } = useParams();
   const { doctors } = useContext(AppContext);
-  const [filterDoc, setFilterDoc] = useState([...doctors]);
+  const [filterDoc, setFilterDoc] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
-  const isLoading=!doctors || doctors.length===0;
-  const applyFilter = () => {
-    if (speciality) {
-      setFilterDoc(
-        doctors.filter(
-          (doc) =>
-            doc.speciality.toLowerCase() === speciality.replace("-", " ")
-        )
-      );
-    } else {
-      setFilterDoc([...doctors]);
-    }
-  };
+  const [search, setSearch] = useState("");
 
-  useEffect(() => {
-    applyFilter();
-  }, [speciality, doctors]);
-
-  const handleFilterClick = (spec) => {
-    if (speciality === spec) navigate("/doctors");
-    else navigate(`/doctors/${spec}`);
-    setShowFilters(false);
-  };
+  const isLoading = !doctors || doctors.length === 0;
 
   const specialities = [
     "general-physician",
@@ -39,7 +20,39 @@ const Doctors = () => {
     "pediatrician",
     "dentist",
   ];
-  
+
+  // Single unified filter effect with debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      // Step 1: filter by speciality first
+      const bySpeciality = speciality
+        ? doctors.filter(
+            (doc) =>
+              doc.speciality.toLowerCase() === speciality.replace("-", " ")
+          )
+        : [...doctors];
+
+      // Step 2: further filter by search (if any)
+      const result =
+        search.trim() === ""
+          ? bySpeciality
+          : bySpeciality.filter((doc) =>
+              doc.name.toLowerCase().includes(search.trim().toLowerCase())
+            );
+
+      setFilterDoc(result);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [search, speciality, doctors]);
+
+  const handleFilterClick = (spec) => {
+    if (speciality === spec) navigate("/doctors");
+    else navigate(`/doctors/${spec}`);
+    setShowFilters(false);
+    setSearch(""); // clear search when switching speciality
+  };
+
   return (
     <div className="container py-4">
       {/* Filter Toggle Button (visible on mobile) */}
@@ -73,7 +86,7 @@ const Doctors = () => {
           ))}
         </div>
 
-        {/* Mobile Filters (collapsible dropdown style) */}
+        {/* Mobile Filters (collapsible) */}
         {showFilters && (
           <div className="col-12 mb-3 d-lg-none">
             <div className="d-flex flex-wrap gap-2">
@@ -96,12 +109,19 @@ const Doctors = () => {
 
         {/* Main Content */}
         <div className="col-lg-9">
-          <div className="row g-3">
-            {
-            
-            isLoading ?<Shimmer length={3}/>:
+          {/* Search Bar */}
+          <input
+            type="text"
+            className="form-control mb-3"
+            placeholder="Search doctors by name..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
 
-            filterDoc.length > 0 ? (
+          <div className="row g-3">
+            {isLoading ? (
+              <Shimmer length={3} />
+            ) : filterDoc.length > 0 ? (
               filterDoc.slice(0, 8).map((doc, index) => (
                 <div
                   className="col-12 col-sm-6 col-md-4"
@@ -112,7 +132,7 @@ const Doctors = () => {
                     to={`/appointments/${doc._id}`}
                     className="text-decoration-none text-dark"
                   >
-                    <div className="border doctor-card-outer p-3 rounded shadow-sm h-100 text-center hover-shadow-sm">
+                    <div className="border doctor-card-outer p-3 rounded shadow-sm h-100 text-center">
                       <img
                         src={doc.image}
                         alt="doctor"
@@ -134,7 +154,7 @@ const Doctors = () => {
               ))
             ) : (
               <p className="text-center text-muted mt-4">
-                No doctors found for this speciality.
+                No doctors found.
               </p>
             )}
           </div>

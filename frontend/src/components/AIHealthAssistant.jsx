@@ -14,451 +14,435 @@ import {
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
-/* ─── inline styles (no extra CSS file needed) ─── */
-const styles = `
-  * { box-sizing: border-box; }
-
-  body, .medi-root { font-family: var(--bs-font-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif); }
-
-  .medi-root {
-    min-height: 100vh;
-    background: #f0f4ff;
-    padding: 24px 16px;
-  }
-
-  /* ── sidebar ── */
-  .sidebar {
-    background: linear-gradient(160deg, #1d4ed8 0%, #4338ca 100%);
-    border-radius: 20px;
-    padding: 32px 28px;
-    color: #fff;
-    height: 100%;
-  }
-  .sidebar-brand { display: flex; align-items: center; gap: 16px; margin-bottom: 36px; }
-  .sidebar-icon-wrap {
-    width: 60px; height: 60px; border-radius: 16px;
-    background: rgba(255,255,255,0.18);
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-  }
-  .sidebar-brand h2 { font-size: 1.5rem; font-weight: 700; margin: 0 0 2px; }
-  .sidebar-brand p  { margin: 0; font-size: 0.85rem; opacity: 0.85; }
-
-  .feature-card {
-    background: rgba(255,255,255,0.12);
-    border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 14px;
-    padding: 18px;
-    display: flex; gap: 14px;
-    margin-bottom: 14px;
-  }
-  .feature-card h6 { font-size: 0.95rem; font-weight: 600; margin: 0 0 4px; }
-  .feature-card p  { font-size: 0.8rem; opacity: 0.85; margin: 0; line-height: 1.5; }
-
-  .disclaimer-box {
-    background: rgba(255,255,255,0.1);
-    border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 14px;
-    padding: 16px 18px;
-    display: flex; gap: 12px; align-items: flex-start;
-    margin-top: 28px;
-    font-size: 0.8rem; opacity: 0.9; line-height: 1.5;
-  }
-
-  /* ── form card ── */
-  .form-card {
-    background: #fff;
-    border-radius: 20px;
-    box-shadow: 0 4px 24px rgba(30,40,100,0.07);
-    padding: 28px 28px 32px;
-    margin-bottom: 24px;
-  }
-  .form-card h2 { font-size: 1.55rem; font-weight: 700; margin: 0 0 4px; }
-  .form-card .sub { color: #6b7280; font-size: 0.88rem; margin: 0 0 24px; }
-
-  .ai-badge {
-    background: #fef3c7; color: #92400e;
-    font-size: 0.75rem; font-weight: 600;
-    padding: 5px 14px; border-radius: 999px;
-    white-space: nowrap; align-self: flex-start;
-  }
-
-  .form-row { display: flex; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
-  .form-row > * { flex: 1 1 160px; }
-
-  .medi-input, .medi-select, .medi-textarea {
-    width: 100%; border: 1.5px solid #e5e7eb;
-    border-radius: 10px; padding: 12px 14px;
-    font-size: 0.92rem;
-    color: #111827; background: #fff;
-    transition: border-color 0.2s;
-    outline: none;
-  }
-  .medi-input:focus, .medi-select:focus, .medi-textarea:focus { border-color: #2563eb; }
-  .medi-textarea { resize: vertical; min-height: 120px; }
-
-  .analyze-btn {
-    width: 100%; margin-top: 18px;
-    background: linear-gradient(135deg, #2563eb, #4338ca);
-    color: #fff; border: none; border-radius: 12px;
-    padding: 14px; font-size: 0.97rem; font-weight: 600;
-    cursor: pointer; transition: opacity 0.2s, transform 0.15s;
-  }
-  .analyze-btn:disabled { opacity: 0.65; cursor: not-allowed; }
-  .analyze-btn:not(:disabled):hover { opacity: 0.92; transform: translateY(-1px); }
-
-  /* ── response section ── */
-  .response-grid { display: flex; flex-direction: column; gap: 20px; }
-
-  .res-card {
-    background: #fff;
-    border-radius: 20px;
-    box-shadow: 0 4px 20px rgba(30,40,100,0.06);
-    overflow: hidden;
-  }
-  .res-card-body { padding: 24px 28px; }
-  .res-card h3 { font-size: 1.25rem; font-weight: 700; margin: 0 0 4px; }
-  .res-card h4 { font-size: 1.1rem; font-weight: 700; margin: 0 0 16px; }
-
-  /* urgency badge */
-  .urgency-high     { background:#fee2e2; color:#dc2626; }
-  .urgency-moderate { background:#fef9c3; color:#ca8a04; }
-  .urgency-low      { background:#dcfce7; color:#16a34a; }
-  .urgency-badge {
-    font-size: 0.78rem; font-weight: 700; padding: 5px 14px;
-    border-radius: 999px; white-space: nowrap;
-  }
-
-  /* summary */
-  .summary-text { color: #374151; line-height: 1.7; font-size: 0.93rem; margin: 0 0 20px; }
-
-  .specialist-pill {
-    display: inline-flex; align-items: center; gap: 10px;
-    background: linear-gradient(135deg, #2563eb, #4338ca);
-    color: #fff; border-radius: 14px; padding: 14px 20px;
-    width: 100%;
-  }
-  .specialist-pill .label { font-size: 0.75rem; opacity: 0.8; }
-  .specialist-pill .value { font-size: 1rem; font-weight: 600; }
-
-  /* conditions */
-  .conditions-wrap { display: flex; flex-wrap: wrap; gap: 8px; }
-  .condition-tag {
-    background: #eff6ff; color: #1d4ed8;
-    font-size: 0.82rem; font-weight: 500;
-    padding: 6px 16px; border-radius: 999px;
-    border: 1px solid #bfdbfe;
-  }
-
-  /* precautions & emergency lists */
-  .medi-list { list-style: none; margin: 0; padding: 0; }
-  .medi-list li {
-    display: flex; gap: 10px; align-items: flex-start;
-    padding: 9px 0; border-bottom: 1px solid #f3f4f6;
-    font-size: 0.9rem; line-height: 1.5; color: #374151;
-  }
-  .medi-list li:last-child { border-bottom: none; }
-  .medi-list li::before { content: "•"; color: #2563eb; font-size: 1.1rem; margin-top: -1px; flex-shrink: 0; }
-
-  .emergency-card { background: #fff5f5; border: 1.5px solid #fecaca; }
-  .emergency-list li { color: #dc2626; border-bottom-color: #fee2e2; }
-  .emergency-list li::before { color: #dc2626; }
-
-  /* doctors grid */
-  .doctors-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
-  .doctor-card {
-    border: 1.5px solid #e5e7eb; border-radius: 16px;
-    padding: 20px; display: flex; flex-direction: column; gap: 0;
-    transition: box-shadow 0.2s, border-color 0.2s;
-  }
-  .doctor-card:hover { box-shadow: 0 6px 24px rgba(37,99,235,0.1); border-color: #bfdbfe; }
-  .doctor-top { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 14px; }
-  .doctor-top img { width: 64px; height: 64px; border-radius: 12px; object-fit: cover; flex-shrink: 0; }
-  .doctor-top h5 { font-size: 0.97rem; font-weight: 700; margin: 0 0 3px; }
-  .doctor-top p  { font-size: 0.82rem; color: #2563eb; font-weight: 600; margin: 0; }
-  .doctor-meta { font-size: 0.82rem; color: #6b7280; margin-bottom: 16px; }
-  .doctor-meta p { margin: 0 0 5px; display: flex; gap: 4px; }
-  .doctor-meta strong { color: #374151; }
-  .book-btn {
-    margin-top: auto; background: #eff6ff; color: #1d4ed8;
-    border: 1.5px solid #bfdbfe; border-radius: 10px;
-    padding: 10px; font-weight: 600; font-size: 0.87rem;
-    cursor: pointer;
-    transition: background 0.2s, color 0.2s;
-  }
-  .book-btn:hover { background: #2563eb; color: #fff; border-color: #2563eb; }
-
-  /* disclaimer alert */
-  .disclaimer-alert {
-    background: #fffbeb; border: 1.5px solid #fde68a;
-    border-radius: 16px; padding: 20px 24px;
-  }
-  .disclaimer-alert h5 { font-size: 0.95rem; font-weight: 700; color: #92400e; margin: 0 0 8px; }
-  .disclaimer-alert p  { font-size: 0.85rem; color: #78350f; margin: 0; line-height: 1.6; }
-
-  /* collapsible section headers on mobile */
-  .section-toggle {
-    display: none; background: none; border: none; cursor: pointer;
-    color: #6b7280; padding: 0; margin-left: auto;
-  }
-
-  /* layout */
-  .main-grid {
-    display: grid;
-    grid-template-columns: 340px 1fr;
-    gap: 24px;
-    max-width: 1200px;
-    margin: 0 auto;
-  }
-
-  /* ── RESPONSIVE ── */
-  @media (max-width: 1024px) {
-    .main-grid { grid-template-columns: 280px 1fr; }
-  }
-
-  @media (max-width: 768px) {
-    .medi-root { padding: 16px 12px; }
-    .main-grid  { grid-template-columns: 1fr; }
-    .sidebar    { border-radius: 16px; padding: 22px 18px; }
-    .sidebar-features { display: none; }          /* hide feature cards on mobile */
-    .sidebar-brand { margin-bottom: 16px; }
-    .disclaimer-box { margin-top: 16px; }
-    .form-card { padding: 20px 16px; border-radius: 16px; }
-    .res-card-body { padding: 18px 16px; }
-    .doctors-grid { grid-template-columns: 1fr; }
-    .form-header { flex-wrap: wrap; gap: 8px; }
-    .section-toggle { display: flex; }
-  }
-
-  @media (max-width: 480px) {
-    .form-row { flex-direction: column; }
-    .specialist-pill { flex-direction: column; align-items: flex-start; gap: 4px; }
-  }
-
-  /* loading pulse */
-  .pulse-dot {
-    display: inline-block; width: 8px; height: 8px;
-    background: currentColor; border-radius: 50; margin-right: 6px;
-    animation: pulse 1.2s ease-in-out infinite;
-  }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
-`;
-
-/* ─── helpers ─── */
-const urgencyClass = (u) =>
-  u === "High" ? "urgency-high" : u === "Moderate" ? "urgency-moderate" : "urgency-low";
-
-/* collapsible wrapper for response sections on mobile */
-const Section = ({ title, children, defaultOpen = true }) => {
+/* ── Collapsible section (mobile-friendly) ───────────────────────────────── */
+const Section = ({ title, icon, children, defaultOpen = true }) => {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="res-card">
-      <div className="res-card-body">
-        <div style={{ display: "flex", alignItems: "center", marginBottom: open ? 16 : 0 }}>
-          <h4 style={{ margin: 0 }}>{title}</h4>
-          <button className="section-toggle" onClick={() => setOpen(!open)} aria-label="toggle">
-            {open ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-          </button>
+    <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
+      <div
+        className="card-header bg-white border-0 d-flex align-items-center justify-content-between py-3 px-4"
+        style={{ cursor: "pointer" }}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <div className="d-flex align-items-center gap-2 fw-semibold text-dark">
+          {icon && <span className="text-primary">{icon}</span>}
+          {title}
         </div>
-        {open && children}
+        <span className="text-secondary">
+          {open ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+        </span>
       </div>
+      {open && <div className="card-body px-4 pb-4 pt-1">{children}</div>}
     </div>
   );
 };
 
-/* ─── main component ─── */
+/* ── Urgency badge helper ────────────────────────────────────────────────── */
+const UrgencyBadge = ({ level }) => {
+  const map = {
+    High: "danger",
+    Moderate: "warning",
+    Low: "success",
+  };
+  const color = map[level] || "secondary";
+  return (
+    <span className={`badge bg-${color}-subtle text-${color} border border-${color}-subtle rounded-pill px-3 py-2 fw-semibold`}
+      style={{ fontSize: "0.78rem" }}>
+      {level} Urgency
+    </span>
+  );
+};
+
+/* ── Main component ──────────────────────────────────────────────────────── */
 const AIHealthAssistant = () => {
-  const [formData, setFormData] = useState({ symptoms: "", age: "", gender: "Male", duration: "" });
+  const [formData, setFormData] = useState({
+    symptoms: "",
+    age: "",
+    gender: "Male",
+    duration: "",
+  });
   const [loading, setLoading] = useState(false);
   const [aiResponse, setAiResponse] = useState(null);
   const [doctors, setDoctors] = useState([]);
-    const navigate=useNavigate();
+  const navigate = useNavigate();
   const backendUrl = "http://localhost:4000";
 
-  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleChange = (e) =>
+    setFormData({ ...formData, [e.target.name]: e.target.value });
 
   const handleSubmit = async () => {
-    if (!formData.symptoms.trim()) return toast.error("Please enter symptoms");
+    if (!formData.symptoms.trim()) return toast.error("Please enter your symptoms");
     setLoading(true);
     try {
-      const { data } = await axios.post(backendUrl + "/api/user/ai-health-assistant", formData);
-      if (data.success) { setAiResponse(data.aiResponse); setDoctors(data.doctors || []); }
+      const { data } = await axios.post(
+        backendUrl + "/api/user/ai-health-assistant",
+        formData
+      );
+      if (data.success) {
+        setAiResponse(data.aiResponse);
+        setDoctors(data.doctors || []);
+      }
     } catch (error) {
-      console.log(error);
-      toast.error(error.message);
-      
+      toast.error(error?.response?.data?.message || error.message || "Something went wrong");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <>
-      <style>{styles}</style>
-      <div className="medi-root">
-        <div className="main-grid">
+    <div className="min-vh-100 py-4 px-3" style={{ background: "#f0f4ff" }}>
+      <div className="container-xl">
+        <div className="row g-4">
 
-          {/* ── SIDEBAR ── */}
-          <aside>
-            <div className="sidebar">
-              <div className="sidebar-brand">
-                <div className="sidebar-icon-wrap"><Brain size={30} /></div>
+          {/* ── SIDEBAR ──────────────────────────────────────────────────── */}
+          <div className="col-12 col-lg-3">
+            <div
+              className="rounded-4 p-4 text-white h-100"
+              style={{ background: "linear-gradient(160deg,#1d4ed8,#4338ca)" }}
+            >
+              {/* Brand */}
+              <div className="d-flex align-items-center gap-3 mb-4">
+                <div
+                  className="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                  style={{ width: 56, height: 56, background: "rgba(255,255,255,0.18)" }}
+                >
+                  <Brain size={28} />
+                </div>
                 <div>
-                  <h2>MediAssist AI</h2>
-                  <p>Smart Healthcare Assistant</p>
+                  <h5 className="fw-bold mb-0">MediAssist AI</h5>
+                  <small style={{ opacity: 0.85 }}>Smart Healthcare Assistant</small>
                 </div>
               </div>
 
-              <div className="sidebar-features">
+              {/* Feature cards — hidden on xs/sm */}
+              <div className="d-none d-lg-flex flex-column gap-3 mb-4">
                 {[
-                  { icon: <Stethoscope size={20} />, title: "Symptom Analysis", desc: "AI-generated analysis based on symptoms and health details." },
-                  { icon: <UserRound size={20} />, title: "Doctor Recommendation", desc: "Suggests specialists and doctors from your platform." },
-                  { icon: <ShieldAlert size={20} />, title: "Emergency Detection", desc: "Detects dangerous symptoms requiring urgent attention." },
-                ].map((f) => (
-                  <div className="feature-card" key={f.title}>
-                    <div style={{ flexShrink: 0, marginTop: 2 }}>{f.icon}</div>
-                    <div><h6>{f.title}</h6><p>{f.desc}</p></div>
+                  {
+                    icon: <Stethoscope size={18} />,
+                    title: "Symptom Analysis",
+                    desc: "AI-generated analysis based on your symptoms and health details.",
+                  },
+                  {
+                    icon: <UserRound size={18} />,
+                    title: "Doctor Recommendation",
+                    desc: "Suggests the right specialists from your platform.",
+                  },
+                  {
+                    icon: <ShieldAlert size={18} />,
+                    title: "Emergency Detection",
+                    desc: "Flags dangerous symptoms requiring urgent attention.",
+                  },
+                ].map(({ icon, title, desc }) => (
+                  <div
+                    key={title}
+                    className="rounded-3 p-3 d-flex gap-3"
+                    style={{
+                      background: "rgba(255,255,255,0.12)",
+                      border: "1px solid rgba(255,255,255,0.15)",
+                    }}
+                  >
+                    <div style={{ flexShrink: 0, marginTop: 2 }}>{icon}</div>
+                    <div>
+                      <p className="fw-semibold mb-1" style={{ fontSize: "0.9rem" }}>{title}</p>
+                      <p className="mb-0" style={{ fontSize: "0.78rem", opacity: 0.85, lineHeight: 1.5 }}>{desc}</p>
+                    </div>
                   </div>
                 ))}
               </div>
 
-              <div className="disclaimer-box">
-                <AlertTriangle size={16} style={{ flexShrink: 0, marginTop: 2 }} />
-                <span>AI-generated suggestions are informational only and should not replace professional medical advice.</span>
+              {/* Disclaimer */}
+              <div
+                className="rounded-3 p-3 d-flex gap-2 align-items-start"
+                style={{
+                  background: "rgba(255,255,255,0.10)",
+                  border: "1px solid rgba(255,255,255,0.15)",
+                  fontSize: "0.78rem",
+                  lineHeight: 1.55,
+                  opacity: 0.92,
+                }}
+              >
+                <AlertTriangle size={15} style={{ flexShrink: 0, marginTop: 2 }} />
+                <span>AI suggestions are informational only and do not replace professional medical advice.</span>
               </div>
             </div>
-          </aside>
+          </div>
 
-          {/* ── RIGHT COLUMN ── */}
-          <main>
+          {/* ── MAIN COLUMN ──────────────────────────────────────────────── */}
+          <div className="col-12 col-lg-9">
 
             {/* INPUT CARD */}
-            <div className="form-card">
-              <div className="form-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
-                <div>
-                  <h2>AI Symptom Checker</h2>
-                  <p className="sub">Describe your symptoms and get AI-powered guidance.</p>
+            <div className="card border-0 shadow-sm rounded-4 mb-4">
+              <div className="card-body p-4">
+                <div className="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
+                  <div>
+                    <h4 className="fw-bold mb-1">AI Symptom Checker</h4>
+                    <p className="text-secondary mb-0" style={{ fontSize: "0.88rem" }}>
+                      Describe your symptoms and get AI-powered guidance.
+                    </p>
+                  </div>
+                  <span
+                    className="badge rounded-pill px-3 py-2 fw-semibold"
+                    style={{ background: "#fef3c7", color: "#92400e", fontSize: "0.75rem" }}
+                  >
+                    ✦ AI Generated
+                  </span>
                 </div>
-                <span className="ai-badge">✦ AI Generated</span>
+
+                {/* Age + Gender */}
+                <div className="row g-3 mb-3">
+                  <div className="col-6 col-sm-4">
+                    <input
+                      type="number"
+                      name="age"
+                      value={formData.age}
+                      onChange={handleChange}
+                      placeholder="Age"
+                      className="form-control rounded-3"
+                      min={0}
+                    />
+                  </div>
+                  <div className="col-6 col-sm-4">
+                    <select
+                      name="gender"
+                      value={formData.gender}
+                      onChange={handleChange}
+                      className="form-select rounded-3"
+                    >
+                      <option>Male</option>
+                      <option>Female</option>
+                      <option>Other</option>
+                    </select>
+                  </div>
+                  <div className="col-12 col-sm-4">
+                    <input
+                      type="text"
+                      name="duration"
+                      value={formData.duration}
+                      onChange={handleChange}
+                      placeholder="Duration (e.g. 3 days)"
+                      className="form-control rounded-3"
+                    />
+                  </div>
+                </div>
+
+                {/* Symptoms */}
+                <textarea
+                  name="symptoms"
+                  rows={5}
+                  value={formData.symptoms}
+                  onChange={handleChange}
+                  placeholder="Describe your symptoms in detail…"
+                  className="form-control rounded-3 mb-4"
+                  style={{ resize: "vertical" }}
+                />
+
+                <button
+                  className="btn btn-primary w-100 rounded-3 py-3 fw-semibold d-flex align-items-center justify-content-center gap-2"
+                  onClick={handleSubmit}
+                  disabled={loading}
+                  style={{
+                    background: "linear-gradient(135deg,#2563eb,#4338ca)",
+                    border: "none",
+                    fontSize: "0.97rem",
+                  }}
+                >
+                  {loading ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm" />
+                      Analyzing Symptoms…
+                    </>
+                  ) : (
+                    <>
+                      <Activity size={17} />
+                      Analyze Symptoms
+                    </>
+                  )}
+                </button>
               </div>
-
-              <div className="form-row">
-                <input type="number" name="age" value={formData.age} onChange={handleChange}
-                  placeholder="Age" className="medi-input" />
-                <select name="gender" value={formData.gender} onChange={handleChange} className="medi-select">
-                  <option>Male</option><option>Female</option><option>Other</option>
-                </select>
-              </div>
-
-              <input type="text" name="duration" value={formData.duration} onChange={handleChange}
-                placeholder="Duration  (e.g. 3 days)" className="medi-input" style={{ marginBottom: 14 }} />
-
-              <textarea name="symptoms" rows={5} value={formData.symptoms} onChange={handleChange}
-                placeholder="Describe your symptoms in detail…" className="medi-textarea" />
-
-              <button className="analyze-btn" onClick={handleSubmit} disabled={loading}>
-                {loading ? (<><span className="pulse-dot" />Analyzing Symptoms…</>) : (<><Activity size={16} style={{ verticalAlign: "middle", marginRight: 6 }} />Analyze Symptoms</>)}
-              </button>
             </div>
 
-            {/* ── RESPONSE ── */}
+            {/* ── RESPONSE ─────────────────────────────────────────────── */}
             {aiResponse && (
-              <div className="response-grid">
+              <div className="d-flex flex-column gap-4">
 
                 {/* Analysis summary */}
-                <div className="res-card">
-                  <div className="res-card-body">
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
-                      <h3 style={{ margin: 0 }}>AI Analysis</h3>
-                      <span className={`urgency-badge ${urgencyClass(aiResponse.urgency)}`}>
-                        {aiResponse.urgency} Urgency
-                      </span>
+                <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
+                  <div className="card-body p-4">
+                    <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                      <h5 className="fw-bold mb-0">AI Analysis</h5>
+                      <UrgencyBadge level={aiResponse.urgency} />
                     </div>
-                    <p className="summary-text">{aiResponse.summary}</p>
-                    <div className="specialist-pill">
-                      <Stethoscope size={22} style={{ flexShrink: 0 }} />
+                    <p className="text-secondary mb-4" style={{ lineHeight: 1.7, fontSize: "0.93rem" }}>
+                      {aiResponse.summary}
+                    </p>
+                    <div
+                      className="rounded-3 p-3 d-flex align-items-center gap-3 text-white"
+                      style={{ background: "linear-gradient(135deg,#2563eb,#4338ca)" }}
+                    >
+                      <Stethoscope size={22} className="flex-shrink-0" />
                       <div>
-                        <div className="label">Recommended Specialist</div>
-                        <div className="value">{aiResponse.recommended_specialist}</div>
+                        <div style={{ fontSize: "0.72rem", opacity: 0.8 }}>Recommended Specialist</div>
+                        <div className="fw-semibold" style={{ fontSize: "1rem" }}>
+                          {aiResponse.recommended_specialist}
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Possible conditions */}
-                <Section title="Possible Conditions">
-                  <div className="conditions-wrap">
+                <Section title="Possible Conditions" icon={<Brain size={18} />}>
+                  <div className="d-flex flex-wrap gap-2 pt-1">
                     {aiResponse.possible_conditions?.map((c, i) => (
-                      <span className="condition-tag" key={i}>{c}</span>
+                      <span
+                        key={i}
+                        className="badge rounded-pill border border-primary-subtle bg-primary-subtle text-primary px-3 py-2"
+                        style={{ fontSize: "0.82rem", fontWeight: 500 }}
+                      >
+                        {c}
+                      </span>
                     ))}
                   </div>
                 </Section>
 
                 {/* Precautions */}
-                <Section title="Recommended Precautions">
-                  <ul className="medi-list">
-                    {aiResponse.precautions?.map((item, i) => <li key={i}>{item}</li>)}
+                <Section title="Recommended Precautions" icon={<ShieldAlert size={18} />}>
+                  <ul className="list-unstyled mb-0 d-flex flex-column gap-2 pt-1">
+                    {aiResponse.precautions?.map((item, i) => (
+                      <li
+                        key={i}
+                        className="d-flex gap-2 align-items-start py-2 border-bottom border-light"
+                        style={{ fontSize: "0.9rem", color: "#374151" }}
+                      >
+                        <span className="text-primary fw-bold mt-1" style={{ flexShrink: 0 }}>•</span>
+                        {item}
+                      </li>
+                    ))}
                   </ul>
                 </Section>
 
-                {/* Emergency signs */}
-                <div className="res-card emergency-card">
-                  <div className="res-card-body">
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-                      <AlertTriangle size={20} color="#dc2626" />
-                      <h4 style={{ margin: 0, color: "#dc2626" }}>Emergency Warning Signs</h4>
+                {/* Emergency warning signs */}
+                <div className="card border-danger-subtle shadow-sm rounded-4 overflow-hidden"
+                  style={{ background: "#fff5f5" }}>
+                  <div className="card-body p-4">
+                    <div className="d-flex align-items-center gap-2 mb-3">
+                      <AlertTriangle size={20} className="text-danger flex-shrink-0" />
+                      <h5 className="fw-bold mb-0 text-danger">Emergency Warning Signs</h5>
                     </div>
-                    <ul className="medi-list emergency-list">
-                      {aiResponse.emergency_signs?.map((item, i) => <li key={i}>{item}</li>)}
+                    <ul className="list-unstyled mb-0 d-flex flex-column gap-2">
+                      {aiResponse.emergency_signs?.map((item, i) => (
+                        <li
+                          key={i}
+                          className="d-flex gap-2 align-items-start py-2 border-bottom"
+                          style={{
+                            fontSize: "0.9rem",
+                            color: "#dc2626",
+                            borderBottomColor: "#fee2e2 !important",
+                          }}
+                        >
+                          <span className="fw-bold mt-1" style={{ flexShrink: 0 }}>•</span>
+                          {item}
+                        </li>
+                      ))}
                     </ul>
                   </div>
                 </div>
 
-                {/* Doctors */}
-                <div className="res-card">
-                  <div className="res-card-body">
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: 20 }}>
-                      <h3 style={{ margin: 0 }}>Suggested Doctors</h3>
-                      <span style={{ fontSize: "0.83rem", color: "#6b7280" }}>{doctors.length} found</span>
+                {/* Suggested Doctors */}
+                <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
+                  <div className="card-body p-4">
+                    <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+                      <h5 className="fw-bold mb-0">Suggested Doctors</h5>
+                      <span className="text-secondary" style={{ fontSize: "0.83rem" }}>
+                        {doctors.length} found
+                      </span>
                     </div>
-                    {doctors.length === 0
-                      ? <p style={{ color: "#9ca3af", fontSize: "0.9rem" }}>No doctors found for this speciality.</p>
-                      : (
-                        <div className="doctors-grid">
-                          {doctors.map((doc) => (
-                            <div className="doctor-card" key={doc._id}>
-                              <div className="doctor-top">
-                                <img src={doc.image} alt={doc.name} />
-                                <div>
-                                  <h5>{doc.name}</h5>
-                                  <p>{doc.speciality}</p>
+
+                    {doctors.length === 0 ? (
+                      <p className="text-secondary mb-0" style={{ fontSize: "0.9rem" }}>
+                        No doctors found for this speciality.
+                      </p>
+                    ) : (
+                      <div className="row g-3">
+                        {doctors.map((doc) => (
+                          <div className="col-12 col-sm-6 col-xl-4" key={doc._id}>
+                            <div className="card border rounded-3 h-100 p-3"
+                              style={{ transition: "box-shadow 0.2s" }}
+                              onMouseEnter={(e) =>
+                                (e.currentTarget.style.boxShadow = "0 6px 24px rgba(37,99,235,0.12)")
+                              }
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.boxShadow = "none")
+                              }
+                            >
+                              <div className="d-flex gap-3 align-items-start mb-3">
+                                <img
+                                  src={doc.image}
+                                  alt={doc.name}
+                                  className="rounded-3 object-fit-cover flex-shrink-0"
+                                  style={{ width: 60, height: 60 }}
+                                  onError={(e) => {
+                                    e.target.src =
+                                      "https://placehold.co/60x60?text=Dr";
+                                  }}
+                                />
+                                <div className="overflow-hidden">
+                                  <h6 className="fw-bold mb-0 text-truncate">{doc.name}</h6>
+                                  <p className="text-primary mb-0 fw-semibold" style={{ fontSize: "0.82rem" }}>
+                                    {doc.speciality}
+                                  </p>
                                 </div>
                               </div>
-                              <div className="doctor-meta">
-                                <p><Clock size={13} /><strong>Experience:</strong>&nbsp;{doc.experience}</p>
-                                <p><strong>Fees:</strong>&nbsp;₹{doc.fees}</p>
-                                {doc.address?.line1 && <p><strong>Address:</strong>&nbsp;{doc.address.line1}</p>}
+
+                              <div className="text-secondary mb-3 d-flex flex-column gap-1" style={{ fontSize: "0.82rem" }}>
+                                <span className="d-flex align-items-center gap-1">
+                                  <Clock size={13} />
+                                  <strong className="text-dark">Experience:</strong>&nbsp;{doc.experience}
+                                </span>
+                                <span>
+                                  <strong className="text-dark">Fees:</strong>&nbsp;₹{doc.fees}
+                                </span>
+                                {doc.address?.line1 && (
+                                  <span>
+                                    <strong className="text-dark">Address:</strong>&nbsp;{doc.address.line1}
+                                  </span>
+                                )}
                               </div>
-                              <button className="book-btn" onClick={()=>navigate(`/appointments/${doc._id}`)}>Book Appointment</button>
+
+                              <button
+                                className="btn btn-outline-primary rounded-3 w-100 fw-semibold mt-auto"
+                                style={{ fontSize: "0.87rem" }}
+                                onClick={() => navigate(`/appointments/${doc._id}`)}
+                              >
+                                Book Appointment
+                              </button>
                             </div>
-                          ))}
-                        </div>
-                      )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 {/* Disclaimer */}
-                <div className="disclaimer-alert">
-                  <h5>Medical Disclaimer</h5>
-                  <p>{aiResponse.disclaimer}</p>
+                <div
+                  className="rounded-4 p-4"
+                  style={{ background: "#fffbeb", border: "1.5px solid #fde68a" }}
+                >
+                  <h6 className="fw-bold mb-2" style={{ color: "#92400e" }}>
+                    ⚠ Medical Disclaimer
+                  </h6>
+                  <p className="mb-0" style={{ fontSize: "0.85rem", color: "#78350f", lineHeight: 1.6 }}>
+                    {aiResponse.disclaimer}
+                  </p>
                 </div>
 
               </div>
             )}
-          </main>
+          </div>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 
