@@ -62,6 +62,8 @@ const DoctorContextProvider = (props) => {
       toast.error(error.message);
     }
   }
+
+  
   const value = {
     doctortoken,
     setDoctortoken,

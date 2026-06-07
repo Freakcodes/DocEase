@@ -8,21 +8,26 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const { backEndUrl, token, setToken,setUser } = useContext(AppContext);
+
+  const [dob, setDob] = useState("");
+  const { backEndUrl, token, setToken, setUser } = useContext(AppContext);
   const navigate = useNavigate();
   const onSubmitHandler = async (e) => {
     e.preventDefault();
-    
+
     if (state === "Sign up") {
       try {
-        const { data } = await axios.post(
-          backEndUrl + "/api/user/register",{ name, email, password } 
-        );
+        const { data } = await axios.post(backEndUrl + "/api/user/register", {
+          name,
+          email,
+          password,
+          dob
+        });
         if (data.success) {
           console.log(data.token);
           setToken(data.token);
           setUser(data.user);
-          localStorage.setItem("token", data.token);
+          sessionStorage.setItem("token", data.token);
           navigate("/");
         } else {
           toast.error(data.message);
@@ -32,10 +37,9 @@ const Login = () => {
       }
     } else {
       try {
-        
         const { data } = await axios.post(backEndUrl + "/api/user/login", {
           email,
-          password
+          password,
         });
         console.log(data);
         if (data.success) {
@@ -43,9 +47,9 @@ const Login = () => {
           console.log(token);
           console.log(data);
           setUser(data.user);
-          localStorage.setItem("token", data.token);
+          sessionStorage.setItem("token", data.token);
           navigate("/");
-        }else{
+        } else {
           toast.error(data.message);
         }
       } catch (error) {
@@ -53,8 +57,6 @@ const Login = () => {
       }
     }
   };
-
-  
 
   return (
     <div className="container d-flex justify-content-center align-items-center vh-100">
@@ -84,6 +86,20 @@ const Login = () => {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                     />
+
+                    <div className="mb-3">
+                      <label htmlFor="dob" className="form-label">
+                        Date of Birth
+                      </label>
+                      <input
+                        type="date"
+                        className="form-control"
+                        id="dob"
+                        value={dob}
+                        onChange={(e) => setDob(e.target.value)}
+                        max={new Date().toISOString().split("T")[0]}
+                      />
+                    </div>
                   </div>
                 )}
 
@@ -139,19 +155,15 @@ const Login = () => {
 
               <div className="text-center mt-3">
                 <small>
-                  {state === "Login"
-                    ? "Forgot Password? "
-                    : " "}
+                  {state === "Login" ? "Forgot Password? " : " "}
                   <span
                     className="text-primary fw-bold"
                     role="button"
-                    onClick={
-                      ()=>{
-                        navigate('/forgot-password')
-                      }
-                    }
+                    onClick={() => {
+                      navigate("/forgot-password");
+                    }}
                   >
-                    {state === "Login" ?"Reset Now":""}
+                    {state === "Login" ? "Reset Now" : ""}
                   </span>
                 </small>
               </div>

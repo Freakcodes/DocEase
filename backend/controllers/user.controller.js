@@ -7,7 +7,7 @@ import doctorModel from "../models/doctor.model.js";
 import appointmentModel from "../models/appointment.model.js";
 import razorpay from "razorpay";
 import crypto from "crypto";
-import { log } from "console";
+// import { log } from "console";
 import sendEmail from "../utils/sendEmail.js";
 import { GoogleGenAI } from "@google/genai";
 import fs from "fs";
@@ -27,8 +27,8 @@ const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
 });
 const registerUser = async (req, res) => {
-  const { name, email, password } = req.body;
-  console.log(name);
+  const { name, email, password,dob } = req.body;
+  
   if (!validator.isEmail(email)) {
     res.json({ success: false, message: "Enter a valid email" });
   }
@@ -46,6 +46,7 @@ const registerUser = async (req, res) => {
   const userData = {
     name,
     email,
+    dob,
     password: hashedPassword,
   };
 
@@ -268,7 +269,7 @@ const razorpayInstance = new razorpay({
 const paymentRazorpay = async (req, res) => {
   try {
     const { appointmentId } = req.body;
-    console.log(appointmentId);
+    
     const appointmentData = await appointmentModel.findById(appointmentId);
 
     if (!appointmentData || appointmentData.cancelled) {
@@ -283,11 +284,25 @@ const paymentRazorpay = async (req, res) => {
       currency: process.env.CURRENCY,
       receipt: appointmentId,
     };
-    console.log(options);
+    // console.log(options);
     //creation of an order
-    const order = await razorpayInstance.orders.create(options);
-    console.log(order);
-    res.json({ success: true, order });
+   console.log('before the payment all good');
+
+try {
+  const order = await razorpayInstance.orders.create(options);
+  console.log('I am here');
+  console.log('Order created:', order);
+   return res.json({ success: true, order });
+} catch (error) {
+  return res.json({
+      success: false,
+      message: error.code,
+    });
+  console.log('Razorpay Error:', error); // This will show the REAL error
+}
+    
+    
+    
   } catch (error) {
     return res.json({
       success: false,
@@ -1250,7 +1265,8 @@ ${symptoms}
       model: "gemini-2.5-flash",
       contents: prompt,
     });
-
+    
+    
     let rawText = response.text;
 
     // Remove accidental markdown
@@ -1258,13 +1274,14 @@ ${symptoms}
       .replace(/```json/g, "")
       .replace(/```/g, "")
       .trim();
-
+      
+      
     // =========================
     // PARSE JSON
     // =========================
     let parsedResponse;
 
-    try {
+    try { 
       parsedResponse = JSON.parse(rawText);
     } catch (parseError) {
       return res.json({

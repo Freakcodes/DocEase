@@ -90,85 +90,15 @@ const AIHealthAssistant = () => {
   };
 
   return (
-    <div className="min-vh-100 py-4 px-3" style={{ background: "#f0f4ff" }}>
+    <div className="py-4 px-3" style={{ background: "#f0f4ff" }}>
       <div className="container-xl">
         <div className="row g-4">
 
           {/* ── SIDEBAR ──────────────────────────────────────────────────── */}
-          <div className="col-12 col-lg-3">
-            <div
-              className="rounded-4 p-4 text-white h-100"
-              style={{ background: "linear-gradient(160deg,#1d4ed8,#4338ca)" }}
-            >
-              {/* Brand */}
-              <div className="d-flex align-items-center gap-3 mb-4">
-                <div
-                  className="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-                  style={{ width: 56, height: 56, background: "rgba(255,255,255,0.18)" }}
-                >
-                  <Brain size={28} />
-                </div>
-                <div>
-                  <h5 className="fw-bold mb-0">MediAssist AI</h5>
-                  <small style={{ opacity: 0.85 }}>Smart Healthcare Assistant</small>
-                </div>
-              </div>
-
-              {/* Feature cards — hidden on xs/sm */}
-              <div className="d-none d-lg-flex flex-column gap-3 mb-4">
-                {[
-                  {
-                    icon: <Stethoscope size={18} />,
-                    title: "Symptom Analysis",
-                    desc: "AI-generated analysis based on your symptoms and health details.",
-                  },
-                  {
-                    icon: <UserRound size={18} />,
-                    title: "Doctor Recommendation",
-                    desc: "Suggests the right specialists from your platform.",
-                  },
-                  {
-                    icon: <ShieldAlert size={18} />,
-                    title: "Emergency Detection",
-                    desc: "Flags dangerous symptoms requiring urgent attention.",
-                  },
-                ].map(({ icon, title, desc }) => (
-                  <div
-                    key={title}
-                    className="rounded-3 p-3 d-flex gap-3"
-                    style={{
-                      background: "rgba(255,255,255,0.12)",
-                      border: "1px solid rgba(255,255,255,0.15)",
-                    }}
-                  >
-                    <div style={{ flexShrink: 0, marginTop: 2 }}>{icon}</div>
-                    <div>
-                      <p className="fw-semibold mb-1" style={{ fontSize: "0.9rem" }}>{title}</p>
-                      <p className="mb-0" style={{ fontSize: "0.78rem", opacity: 0.85, lineHeight: 1.5 }}>{desc}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Disclaimer */}
-              <div
-                className="rounded-3 p-3 d-flex gap-2 align-items-start"
-                style={{
-                  background: "rgba(255,255,255,0.10)",
-                  border: "1px solid rgba(255,255,255,0.15)",
-                  fontSize: "0.78rem",
-                  lineHeight: 1.55,
-                  opacity: 0.92,
-                }}
-              >
-                <AlertTriangle size={15} style={{ flexShrink: 0, marginTop: 2 }} />
-                <span>AI suggestions are informational only and do not replace professional medical advice.</span>
-              </div>
-            </div>
-          </div>
+         
 
           {/* ── MAIN COLUMN ──────────────────────────────────────────────── */}
-          <div className="col-12 col-lg-9">
+          <div className="col-12 col-lg-9 mx-auto">
 
             {/* INPUT CARD */}
             <div className="card border-0 shadow-sm rounded-4 mb-4">

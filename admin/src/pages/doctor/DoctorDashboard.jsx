@@ -4,23 +4,54 @@ import { DoctorContext } from "../../context/DoctorContext";
 import { toast } from "react-toastify";
 import axios from "axios";
 import { Link } from "react-router-dom";
+import Pagination from "../../components/Pagination";
 
 const DoctorDashboard = () => {
   const { dashData, doctortoken, getDashboardData, backendUrl } =
     useContext(DoctorContext);
 
   const [loading, setLoading] = useState(true);
-
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [appointments, setAppointments] = useState([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total,setTotal]=useState(1);
   useEffect(() => {
     const fetchData = async () => {
       if (doctortoken) {
         setLoading(true);
+
         await getDashboardData();
         setLoading(false);
       }
     };
     fetchData();
   }, [doctortoken]);
+
+  useEffect(() => {
+    const delay = setTimeout(() => {
+      fetchAppointments();
+      console.log('this is being triggered');
+      
+    }, 500); // waits 500ms after user stops typing
+    
+    return () => clearTimeout(delay);
+  }, [search,page]);
+
+  const fetchAppointments = async () => {
+    const res = await axios.get(backendUrl + "/api/doctor/all-appointments", {
+      params: { page, limit: 10, search },
+      headers: { doctortoken: doctortoken }, // ✅ inside the same object
+    });
+    setAppointments(res.data.appointments);
+    setTotalPages(res.data.totalPages);
+    setTotal(res.data.total);
+  };
+  // Reset to page 1 when search changes
+  const handleSearch = (e) => {
+    setSearch(e.target.value);
+    setPage(1); 
+  };
 
   const getAge = (dob) => {
     if (!dob) return "-";
@@ -90,7 +121,7 @@ const DoctorDashboard = () => {
   );
 
   return (
-    <div className="margin-left-side py-4">
+    <div className="margin-left-side py-4 ">
       <h4 className="text-primary fw-bold mb-4">
         <i className="fas fa-tachometer-alt me-2"></i>Welcome to the Dashboard
       </h4>
@@ -191,6 +222,20 @@ const DoctorDashboard = () => {
                 <i className="fas fa-clock me-2"></i>Latest Appointments
               </h5>
 
+              <div className="container">
+                <div className="row">
+                  <div className="col-lg-8">
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Search by patient name"
+                      value={search}
+                      onChange={handleSearch}
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="table-responsive bg-white shadow-sm rounded-4 p-3">
                 <table className="table align-middle mb-0">
                   <thead className="table-light">
@@ -220,9 +265,8 @@ const DoctorDashboard = () => {
                   </thead>
 
                   <tbody>
-                    {dashData?.latestAppointments &&
-                    dashData?.latestAppointments.length > 0 ? (
-                      dashData.latestAppointments.map((apt, index) => {
+                    {appointments && appointments.length > 0 ? (
+                      appointments.map((apt, index) => {
                         const user = apt.userData;
                         const doc = apt.docData;
                         return (
@@ -293,7 +337,9 @@ const DoctorDashboard = () => {
                   </tbody>
                 </table>
               </div>
+              <Pagination currentPage={page} totalPages={totalPages} totalItems={total} limit={10} onPageChange={setPage} />
             </div>
+            
           </div>
         )
       )}

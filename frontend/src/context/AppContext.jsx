@@ -6,8 +6,9 @@ import { toast } from "react-toastify";
 const AppContextProvider = (props) => {
   const [doctors, setDoctors] = useState([]);
   const [token, setToken] = useState(
-    localStorage.getItem("token") ? localStorage.getItem("token") : ""
+    sessionStorage.getItem("token") ? sessionStorage.getItem("token") : ""
   );
+
   const [user, setUser] = useState();
   const backEndUrl = import.meta.env.VITE_BACKEND_URL;
   const getDoctorsData = async () => {
@@ -26,6 +27,8 @@ const AppContextProvider = (props) => {
 
   useEffect(() => {
     getDoctorsData();
+    
+    
   }, []);
   const getUserProfile = async () => {
     const { data } = await axios.get(backEndUrl + "/api/user/profile", {

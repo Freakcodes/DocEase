@@ -3,24 +3,19 @@ import { DoctorContext } from "../../context/DoctorContext";
 import axios from "axios";
 import { toast } from "react-toastify";
 
+const DAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+
 const DoctorProfile = () => {
-  const { doctorData, getDoctorData, doctortoken, backendUrl } =
-    useContext(DoctorContext);
+  const { doctorData, getDoctorData, doctortoken, backendUrl } = useContext(DoctorContext);
 
   const [isEdit, setIsEdit] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
   const [docImage, setDocImage] = useState(null);
-  const [userData, setUserData] = useState({
-    timings: {
-      start: "",
-      end: "",
-    },
-    slotDuration: 30,
-    availableDays: [],
-  });
-  const [loading, setLoading] = useState(true); // 👈 shimmer state
+  const [userData, setUserData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-   useEffect(() => {
+  useEffect(() => {
     const fetchDoctor = async () => {
       if (doctortoken) {
         setLoading(true);
@@ -34,60 +29,58 @@ const DoctorProfile = () => {
   useEffect(() => {
     if (doctorData) {
       setPreviewImage(doctorData.image);
-
-      // ✅ STEP 1: normalize data here
       setUserData({
         ...doctorData,
-
-        timings: doctorData.timings || {
-          start: "09:00",
-          end: "17:00",
-        },
-
+        timings: doctorData.timings || { start: "09:00", end: "17:00" },
         slotDuration: doctorData.slotDuration || 30,
-
-        availableDays: doctorData.availableDays || [
-          "MON",
-          "TUE",
-          "WED",
-          "THU",
-          "FRI",
-        ],
+        availableDays: doctorData.availableDays || ["MON", "TUE", "WED", "THU", "FRI"],
       });
-      setUserData(doctorData);
-      console.log(doctorData);
-      
       setLoading(false);
     }
   }, [doctorData]);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
+    if (!file) return;
     setDocImage(file);
-    if (file) setPreviewImage(URL.createObjectURL(file));
+    setPreviewImage(URL.createObjectURL(file));
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     if (name === "line1" || name === "line2") {
-      setUserData((prev) => ({
-        ...prev,
-        address: { ...prev.address, [name]: value },
-      }));
+      setUserData((prev) => ({ ...prev, address: { ...prev.address, [name]: value } }));
     } else {
-      setUserData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
+      setUserData((prev) => ({ ...prev, [name]: value }));
     }
+  };
+
+  const toggleDay = (day) => {
+    setUserData((prev) => ({
+      ...prev,
+      availableDays: prev.availableDays.includes(day)
+        ? prev.availableDays.filter((d) => d !== day)
+        : [...prev.availableDays, day],
+    }));
+  };
+
+  const handleCancel = () => {
+    setIsEdit(false);
+    setDocImage(null);
+    setPreviewImage(doctorData.image);
+    setUserData({
+      ...doctorData,
+      timings: doctorData.timings || { start: "09:00", end: "17:00" },
+      slotDuration: doctorData.slotDuration || 30,
+      availableDays: doctorData.availableDays || ["MON", "TUE", "WED", "THU", "FRI"],
+    });
   };
 
   const handleSave = async () => {
     if (!isEdit) return;
-
     try {
+      setSaving(true);
       const formData = new FormData();
-
       formData.append("name", userData.name);
       formData.append("email", userData.email);
       formData.append("speciality", userData.speciality);
@@ -95,398 +88,318 @@ const DoctorProfile = () => {
       formData.append("experience", userData.experience);
       formData.append("fees", userData.fees);
       formData.append("about", userData.about);
-
-      formData.append(
-        "address",
-        JSON.stringify({
-          line1: userData.address.line1,
-          line2: userData.address.line2,
-        }),
-      );
-
-      // ✅ NEW FIELDS
+      formData.append("address", JSON.stringify({ line1: userData.address.line1, line2: userData.address.line2 }));
       formData.append("startTime", userData.timings.start);
       formData.append("endTime", userData.timings.end);
       formData.append("slotDuration", userData.slotDuration);
       formData.append("availableDays", JSON.stringify(userData.availableDays));
+      if (docImage) formData.append("image", docImage);
 
-      if (docImage) {
-        formData.append("image", docImage);
-      }
-
-      
       const { data } = await axios.post(
         backendUrl + "/api/doctor/update-profile",
         formData,
-        { headers: { doctortoken: doctortoken } },
+        { headers: { doctortoken } }
       );
 
       if (data.success) {
-        toast.success("Profile Updated Successfully");
-        getDoctorData();
+        toast.success("Profile updated successfully");
+        await getDoctorData();
         setIsEdit(false);
+        setDocImage(null);
       } else {
         toast.error(data.message);
       }
     } catch (error) {
-      console.error(error);
       toast.error("Something went wrong while updating profile.");
+    } finally {
+      setSaving(false);
     }
   };
 
-  // 🩺 SHIMMER loader
-  const ShimmerProfile = () => (
-    <div className="card shadow-lg border-0 rounded-4 p-4 doctor-shimmer-wrapper">
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <div className="doctor-shimmer-title shimmer"></div>
-        <div className="doctor-shimmer-btn shimmer"></div>
-      </div>
-      <div className="row">
-        <div className="col-md-4 text-center">
-          <div className="doctor-shimmer-circle shimmer mb-3 mx-auto"></div>
-          <div className="doctor-shimmer-line shimmer mt-2"></div>
-        </div>
-        <div className="col-md-8">
-          {[...Array(8)].map((_, i) => (
-            <div key={i} className="doctor-shimmer-line shimmer mb-3"></div>
-          ))}
-        </div>
-      </div>
+  // ── Field helper ─────────────────────────────────────────────────────
+  const Field = ({ label, icon, name, type = "text", value, children }) => (
+    <div>
+      <label className="small fw-bold text-muted text-uppercase mb-1 d-block" style={{ letterSpacing: "0.5px" }}>
+        <i className={`bi ${icon} me-1 text-primary`}></i>{label}
+      </label>
+      {isEdit ? (
+        children || (
+          <input
+            type={type}
+            className="form-control rounded-3"
+            name={name}
+            value={value || ""}
+            onChange={handleChange}
+          />
+        )
+      ) : (
+        <p className="mb-0 fw-medium text-dark">{value || "—"}</p>
+      )}
     </div>
   );
 
-  return (
-    <div className="margin-left-side my-3">
-      {loading ? (
-        <ShimmerProfile />
-      ) : (
-        userData && (
-          <div className="card shadow-lg border-0 rounded-4">
-            <div className="card-body p-4">
-              <div className="d-flex justify-content-between align-items-center mb-3">
-                <h4 className="mb-0">Doctor Profile</h4>
-                <button
-                  className={`btn btn-${isEdit ? "success" : "primary"}`}
-                  onClick={() => {
-                    if (isEdit) handleSave();
-                    else setIsEdit(true);
-                  }}
-                >
-                  {isEdit ? "Save Changes" : "Edit Profile"}
-                </button>
-              </div>
-
-              <div className="row align-items-start">
-                {/* Left side - Profile Image */}
-                <div className="col-md-4 text-center">
-                  <img
-                    src={previewImage}
-                    alt="Doctor"
-                    className="img-fluid rounded-circle border shadow-sm mb-3"
-                    style={{
-                      width: "180px",
-                      height: "180px",
-                      objectFit: "cover",
-                    }}
-                  />
-                  {isEdit && (
-                    <input
-                      type="file"
-                      className="form-control mt-2"
-                      onChange={handleImageChange}
-                    />
-                  )}
-                </div>
-
-                {/* Right side - Details */}
-                <div className="col-md-8">
-                  {/* All your existing fields (unchanged) */}
-                  <div className="mb-3">
-                    <label className="form-label fw-bold">Name</label>
-                    {isEdit ? (
-                      <input
-                        type="text"
-                        name="name"
-                        className="form-control"
-                        value={userData?.name || ""}
-                        onChange={handleChange}
-                      />
-                    ) : (
-                      <p className="form-control-plaintext">{userData?.name}</p>
-                    )}
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label fw-bold">Email</label>
-                    {isEdit ? (
-                      <input
-                        type="email"
-                        name="email"
-                        className="form-control"
-                        value={userData?.email || ""}
-                        onChange={handleChange}
-                      />
-                    ) : (
-                      <p className="form-control-plaintext">
-                        {userData?.email}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label fw-bold">Speciality</label>
-                    {isEdit ? (
-                      <input
-                        type="text"
-                        name="speciality"
-                        className="form-control"
-                        value={userData?.speciality || ""}
-                        onChange={handleChange}
-                      />
-                    ) : (
-                      <p className="form-control-plaintext">
-                        {userData?.speciality}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="row">
-                    <div className="col-md-6 mb-3">
-                      <label className="form-label fw-bold">Degree</label>
-                      {isEdit ? (
-                        <input
-                          type="text"
-                          name="degree"
-                          className="form-control"
-                          value={userData?.degree || ""}
-                          onChange={handleChange}
-                        />
-                      ) : (
-                        <p className="form-control-plaintext">
-                          {userData?.degree}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="col-md-6 mb-3">
-                      <label className="form-label fw-bold">Experience</label>
-                      {isEdit ? (
-                        <input
-                          type="text"
-                          name="experience"
-                          className="form-control"
-                          value={userData?.experience || ""}
-                          onChange={handleChange}
-                        />
-                      ) : (
-                        <p className="form-control-plaintext">
-                          {userData?.experience}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label fw-bold">
-                      Consultation Fee
-                    </label>
-                    {isEdit ? (
-                      <input
-                        type="number"
-                        name="fees"
-                        className="form-control"
-                        value={userData?.fees || ""}
-                        onChange={handleChange}
-                      />
-                    ) : (
-                      <p className="form-control-plaintext">
-                        ${userData?.fees}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label fw-bold">About</label>
-                    {isEdit ? (
-                      <textarea
-                        className="form-control"
-                        name="about"
-                        rows="3"
-                        value={userData?.about || ""}
-                        onChange={handleChange}
-                      ></textarea>
-                    ) : (
-                      <p className="form-control-plaintext text-muted">
-                        {userData?.about}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label fw-bold">Address</label>
-                    {isEdit ? (
-                      <>
-                        <input
-                          type="text"
-                          name="line1"
-                          className="form-control mb-2"
-                          placeholder="Address Line 1"
-                          value={userData?.address?.line1 || ""}
-                          onChange={handleChange}
-                        />
-                        <input
-                          type="text"
-                          name="line2"
-                          className="form-control"
-                          placeholder="Address Line 2"
-                          value={userData?.address?.line2 || ""}
-                          onChange={handleChange}
-                        />
-                      </>
-                    ) : (
-                      <p className="form-control-plaintext">
-                        {userData?.address?.line1}, {userData?.address?.line2}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="d-flex align-items-center gap-2">
-                    <label className="fw-bold me-2">Available:</label>
-                    <span
-                      className={`badge ${
-                        userData?.available ? "bg-success" : "bg-danger"
-                      } px-3 py-2`}
-                    >
-                      {userData?.available ? "Yes" : "No"}
-                    </span>
-                  </div>
-                  <div className="row">
-                    <div className="col-md-6 mb-3">
-                      <label className="form-label fw-bold">Start Time</label>
-                      {isEdit ? (
-                        <input
-                          type="time"
-                          className="form-control"
-                          value={userData?.timings?.start || ""}
-                          onChange={(e) =>
-                            setUserData((prev) => ({
-                              ...prev,
-                              timings: {
-                                ...prev.timings,
-                                start: e.target.value,
-                              },
-                            }))
-                          }
-                        />
-                      ) : (
-                        <p className="form-control-plaintext">
-                          {userData?.timings?.start}
-                        </p>
-                      )}
-                    </div>
-                    <div className="mb-3">
-                      <label className="form-label fw-bold">
-                        Slot Duration (minutes)
-                      </label>
-                      {isEdit ? (
-                        <select
-                          className="form-control"
-                          value={userData?.slotDuration || 30}
-                          onChange={(e) =>
-                            setUserData((prev) => ({
-                              ...prev,
-                              slotDuration: Number(e.target.value),
-                            }))
-                          }
-                        >
-                          <option value={15}>15</option>
-                          <option value={30}>30</option>
-                          <option value={60}>60</option>
-                        </select>
-                      ) : (
-                        <p className="form-control-plaintext">
-                          {userData?.slotDuration} mins
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="mb-3">
-                      <label className="form-label fw-bold">
-                        Available Days
-                      </label>
-
-                      {isEdit ? (
-                        <div className="d-flex gap-2 flex-wrap">
-                          {[
-                            "SUN",
-                            "MON",
-                            "TUE",
-                            "WED",
-                            "THU",
-                            "FRI",
-                            "SAT",
-                          ].map((day) => (
-                            <button
-                              type="button"
-                              key={day}
-                              className={`btn btn-sm ${
-                                userData.availableDays?.includes(day)
-                                  ? "btn-primary"
-                                  : "btn-outline-primary"
-                              }`}
-                              onClick={() => {
-                                setUserData((prev) => {
-                                  const exists =
-                                    prev.availableDays.includes(day);
-                                  return {
-                                    ...prev,
-                                    availableDays: exists
-                                      ? prev.availableDays.filter(
-                                          (d) => d !== day,
-                                        )
-                                      : [...prev.availableDays, day],
-                                  };
-                                });
-                              }}
-                            >
-                              {day}
-                            </button>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="form-control-plaintext">
-                          {userData?.availableDays?.join(", ")}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="col-md-6 mb-3">
-                      <label className="form-label fw-bold">End Time</label>
-                      {isEdit ? (
-                        <input
-                          type="time"
-                          className="form-control"
-                          value={userData?.timings?.end || ""}
-                          onChange={(e) =>
-                            setUserData((prev) => ({
-                              ...prev,
-                              timings: { ...prev.timings, end: e.target.value },
-                            }))
-                          }
-                        />
-                      ) : (
-                        <p className="form-control-plaintext">
-                          {userData?.timings?.end}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
+  // ── Shimmer ───────────────────────────────────────────────────────────
+  if (loading || !userData) {
+    return (
+      <div className="p-4">
+        <div className="card border-0 shadow-sm rounded-4 p-4">
+          <div className="d-flex gap-4 align-items-start">
+            <div className="rounded-circle bg-secondary bg-opacity-10 flex-shrink-0"
+              style={{ width: "110px", height: "110px" }}></div>
+            <div className="flex-grow-1">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="bg-secondary bg-opacity-10 rounded mb-3"
+                  style={{ height: "16px", width: i % 2 === 0 ? "55%" : "35%" }}></div>
+              ))}
             </div>
           </div>
-        )
-      )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-light min-vh-100 py-4 px-3 margin-left-side ">
+      <div style={{ maxWidth: "860px" }}>
+
+        {/* ── Page Header ───────────────────────────────────────── */}
+        <div className="mb-4">
+          <p className="text-primary fw-semibold small text-uppercase mb-1">
+            <i className="bi bi-person-badge me-1"></i> Doctor Panel
+          </p>
+          <h4 className="fw-bold mb-0">My Profile</h4>
+        </div>
+
+        {/* ── Profile Card ──────────────────────────────────────── */}
+        <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
+          <div className="bg-primary" style={{ height: "4px" }}></div>
+          <div className="card-body p-4">
+
+            {/* ── Avatar + Name ── */}
+            <div className="d-flex flex-column flex-sm-row align-items-center align-items-sm-start gap-4 pb-4 border-bottom mb-4">
+              <div className="position-relative flex-shrink-0">
+                <img
+                  src={previewImage}
+                  alt="Doctor"
+                  className="rounded-circle border border-3 border-white shadow"
+                  style={{ width: "110px", height: "110px", objectFit: "cover" }}
+                />
+                {isEdit && (
+                  <label
+                    htmlFor="docAvatarUpload"
+                    className="position-absolute bottom-0 end-0 bg-primary rounded-circle d-flex align-items-center justify-content-center shadow"
+                    style={{ width: "30px", height: "30px", cursor: "pointer" }}
+                  >
+                    <i className="bi bi-camera-fill text-white small"></i>
+                    <input id="docAvatarUpload" type="file" accept="image/*" className="d-none" onChange={handleImageChange} />
+                  </label>
+                )}
+              </div>
+
+              <div className="flex-grow-1 text-center text-sm-start">
+                <h5 className="fw-bold mb-1">{userData.name}</h5>
+                <p className="text-muted small mb-1">{userData.speciality}</p>
+                <div className="d-flex flex-wrap gap-2 justify-content-center justify-content-sm-start mb-3">
+                  <span className="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3">
+                    {userData.degree}
+                  </span>
+                  <span className="badge bg-light text-dark border rounded-pill px-3">
+                    {userData.experience}
+                  </span>
+                  <span className={`badge rounded-pill px-3 ${userData.available ? "bg-success-subtle text-success" : "bg-danger-subtle text-danger"}`}>
+                    <i className={`bi ${userData.available ? "bi-check-circle" : "bi-x-circle"} me-1`}></i>
+                    {userData.available ? "Available" : "Unavailable"}
+                  </span>
+                </div>
+
+                {!isEdit ? (
+                  <button
+                    className="btn btn-outline-primary btn-sm rounded-3 px-4 fw-semibold"
+                    onClick={() => setIsEdit(true)}
+                  >
+                    <i className="bi bi-pencil me-2"></i>Edit Profile
+                  </button>
+                ) : (
+                  <div className="d-flex gap-2 justify-content-center justify-content-sm-start">
+                    <button
+                      className="btn btn-primary btn-sm rounded-3 px-4 fw-semibold"
+                      onClick={handleSave}
+                      disabled={saving}
+                    >
+                      {saving
+                        ? <><span className="spinner-border spinner-border-sm me-2"></span>Saving...</>
+                        : <><i className="bi bi-check-lg me-2"></i>Save Changes</>
+                      }
+                    </button>
+                    <button
+                      className="btn btn-outline-secondary btn-sm rounded-3 px-3 fw-semibold"
+                      onClick={handleCancel}
+                      disabled={saving}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ── Personal Info ── */}
+            <p className="small fw-bold text-uppercase text-muted mb-3" style={{ letterSpacing: "1px" }}>
+              Personal Information
+            </p>
+            <div className="row g-4 mb-4">
+              <div className="col-12 col-md-6">
+                <Field label="Full Name" icon="bi-person" name="name" value={userData.name} />
+              </div>
+              <div className="col-12 col-md-6">
+                <Field label="Email Address" icon="bi-envelope" name="email" type="email" value={userData.email} />
+              </div>
+              <div className="col-12 col-md-6">
+                <Field label="Speciality" icon="bi-heart-pulse" name="speciality" value={userData.speciality} />
+              </div>
+              <div className="col-12 col-md-3">
+                <Field label="Degree" icon="bi-mortarboard" name="degree" value={userData.degree} />
+              </div>
+              <div className="col-12 col-md-3">
+                <Field label="Experience" icon="bi-briefcase" name="experience" value={userData.experience} />
+              </div>
+              <div className="col-12 col-md-4">
+                <Field label="Consultation Fee (₹)" icon="bi-currency-rupee" name="fees" type="number" value={userData.fees} />
+              </div>
+              <div className="col-12">
+                <Field label="About" icon="bi-info-circle" name="about" value={userData.about}>
+                  {isEdit && (
+                    <textarea
+                      className="form-control rounded-3"
+                      name="about"
+                      rows={3}
+                      value={userData.about || ""}
+                      onChange={handleChange}
+                    />
+                  )}
+                </Field>
+              </div>
+            </div>
+
+            {/* ── Address ── */}
+            <p className="small fw-bold text-uppercase text-muted mb-3" style={{ letterSpacing: "1px" }}>
+              Address
+            </p>
+            <div className="row g-4 mb-4">
+              <div className="col-12 col-md-6">
+                <Field label="Address Line 1" icon="bi-geo-alt" name="line1" value={userData.address?.line1} />
+              </div>
+              <div className="col-12 col-md-6">
+                <Field label="Address Line 2" icon="bi-geo" name="line2" value={userData.address?.line2} />
+              </div>
+            </div>
+
+            {/* ── Availability Settings ── */}
+            <p className="small fw-bold text-uppercase text-muted mb-3" style={{ letterSpacing: "1px" }}>
+              Availability Settings
+            </p>
+            <div className="row g-4">
+              <div className="col-12 col-md-4">
+                <Field
+                  label="Start Time"
+                  icon="bi-clock"
+                  value={userData.timings?.start}
+                >
+                  {isEdit && (
+                    <input
+                      type="time"
+                      className="form-control rounded-3"
+                      value={userData.timings?.start || ""}
+                      onChange={(e) =>
+                        setUserData((prev) => ({ ...prev, timings: { ...prev.timings, start: e.target.value } }))
+                      }
+                    />
+                  )}
+                </Field>
+              </div>
+              <div className="col-12 col-md-4">
+                <Field
+                  label="End Time"
+                  icon="bi-clock-history"
+                  value={userData.timings?.end}
+                >
+                  {isEdit && (
+                    <input
+                      type="time"
+                      className="form-control rounded-3"
+                      value={userData.timings?.end || ""}
+                      onChange={(e) =>
+                        setUserData((prev) => ({ ...prev, timings: { ...prev.timings, end: e.target.value } }))
+                      }
+                    />
+                  )}
+                </Field>
+              </div>
+              <div className="col-12 col-md-4">
+                <Field
+                  label="Slot Duration"
+                  icon="bi-stopwatch"
+                  value={`${userData.slotDuration} mins`}
+                >
+                  {isEdit && (
+                    <select
+                      className="form-select rounded-3"
+                      value={userData.slotDuration}
+                      onChange={(e) =>
+                        setUserData((prev) => ({ ...prev, slotDuration: Number(e.target.value) }))
+                      }
+                    >
+                      <option value={15}>15 mins</option>
+                      <option value={30}>30 mins</option>
+                      <option value={60}>60 mins</option>
+                    </select>
+                  )}
+                </Field>
+              </div>
+
+              <div className="col-12">
+                <label className="small fw-bold text-muted text-uppercase mb-2 d-block" style={{ letterSpacing: "0.5px" }}>
+                  <i className="bi bi-calendar3 me-1 text-primary"></i>Available Days
+                </label>
+                {isEdit ? (
+                  <div className="d-flex gap-2 flex-wrap">
+                    {DAYS.map((day) => (
+                      <button
+                        key={day}
+                        type="button"
+                        className={`btn btn-sm rounded-3 fw-semibold px-3 ${
+                          userData.availableDays?.includes(day)
+                            ? "btn-primary"
+                            : "btn-outline-secondary"
+                        }`}
+                        onClick={() => toggleDay(day)}
+                      >
+                        {day}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="d-flex gap-2 flex-wrap">
+                    {DAYS.map((day) => (
+                      <span
+                        key={day}
+                        className={`badge rounded-3 px-3 py-2 ${
+                          userData.availableDays?.includes(day)
+                            ? "bg-primary"
+                            : "bg-light text-muted border"
+                        }`}
+                      >
+                        {day}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

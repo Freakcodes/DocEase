@@ -3,6 +3,7 @@ import {
   appointmentDetails,
   dashboardData,
   doctorLogin,
+  getAllAppointments,
   getAppointments,
   getDoctorProfile,
   getUserAppointmentHistory,
@@ -17,11 +18,12 @@ const doctorRouter = express.Router();
 
 doctorRouter.use("/list", listAllDoctors);
 doctorRouter.use("/login", doctorLogin);
-doctorRouter.use("/appointments", authDoctor, getAppointments);
+doctorRouter.use("/all-appointments", authDoctor, getAllAppointments);
 doctorRouter.use("/complete-appointment", authDoctor, markCompleteAppointment);
 doctorRouter.use("/dashboard", authDoctor, dashboardData);
 doctorRouter.use("/profile", authDoctor, getDoctorProfile);
 doctorRouter.use("/update-profile",authDoctor,upload.single("image"),updateDoctorProfile);
 doctorRouter.get("/appointment/:id", authDoctor, appointmentDetails);
 doctorRouter.get("/appointment-history/:id",authDoctor,getUserAppointmentHistory);
+doctorRouter.get("/appointments",authDoctor,getAppointments);
 export default doctorRouter;

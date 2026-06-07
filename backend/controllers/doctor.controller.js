@@ -1,4 +1,5 @@
 import doctorModel from "../models/doctor.model.js";
+import userModel from "../models/user.model.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import appointmentModel from "../models/appointment.model.js";
@@ -146,6 +147,8 @@ const markCompleteAppointment = async (req, res) => {
     });
   }
 };
+
+
 //api to get the dashboard data
 
 const dashboardData = async (req, res) => {
@@ -177,7 +180,7 @@ const dashboardData = async (req, res) => {
       earnings,
       appointments: validAppointments.length,
       patients: patients.length,
-      latestAppointments: validAppointments.reverse().slice(0, 5),
+      // latestAppointments: validAppointments.reverse(),
     };
 
     res.json({
@@ -191,6 +194,43 @@ const dashboardData = async (req, res) => {
     });
   }
 };
+
+//get appointment details of the doctor..
+
+const getAllAppointments = async (req, res) => {
+  const { page = 1, limit = 10, search = '' } = req.query;
+  const docId = req.doctorId;
+  const skip = (page - 1) * limit;
+
+  let filter = { docId };
+
+  if (search) {
+    filter = {
+      docId,
+      'userData.name': { $regex: search, $options: 'i' }  // ✅ search directly in appointment
+    };
+  }
+
+  const [appointments, total] = await Promise.all([
+    appointmentModel.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(Number(limit)),
+    appointmentModel.countDocuments(filter)
+  ]);
+
+  res.json({
+    appointments,
+    total,
+    page: Number(page),
+    totalPages: Math.ceil(total / limit),
+    hasNextPage: page < Math.ceil(total / limit),
+    hasPrevPage: page > 1
+  });
+};
+
+
+
 
 //api to get the doctor profile data
 
@@ -377,11 +417,12 @@ export {
   toggleAvailability,
   listAllDoctors,
   doctorLogin,
-  getAppointments,
+  getAllAppointments,
   markCompleteAppointment,
   dashboardData,
   getDoctorProfile,
   updateDoctorProfile,
   appointmentDetails,
-  getUserAppointmentHistory
+  getUserAppointmentHistory,
+  getAppointments
 };

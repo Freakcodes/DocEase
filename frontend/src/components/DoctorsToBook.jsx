@@ -21,7 +21,7 @@ const DoctorsToBook = () => {
       <div className="row text-center">
         {isLoading
           ? <Shimmer length={8}/>
-          : doctors.slice(0, 8).map((doctor, index) => (
+          : doctors.filter((doctor) => doctor.available).slice(0, 8).map((doctor, index) => (
               <Link
                 to={`appointments/${doctor._id}`}
                 className="col-lg-3 col-12 mb-4 no-underline"
