@@ -6,8 +6,8 @@ export const DoctorContext = createContext();
 
 const DoctorContextProvider = (props) => {
   const [doctortoken, setDoctortoken] = useState(
-    localStorage.getItem("doctortoken")
-      ? localStorage.getItem("doctortoken")
+    sessionStorage.getItem("doctortoken")
+      ? sessionStorage.getItem("doctortoken")
       : null
   );
   const [appointments, setAppointments] = useState();

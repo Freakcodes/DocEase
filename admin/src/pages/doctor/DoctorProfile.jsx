@@ -5,6 +5,34 @@ import { toast } from "react-toastify";
 
 const DAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
 
+// ── Field helper — defined OUTSIDE the component so it isn't
+//    recreated on every render. Recreating it on every render caused
+//    React to treat it as a new component type each time, which
+//    unmounted/remounted the inputs underneath it — most noticeably
+//    on the <input type="time"> fields, since their multi-segment
+//    (hour/minute) focus gets reset to the first segment on remount,
+//    making them feel impossible to type into. ─────────────────────
+const Field = ({ label, icon, name, type = "text", value, isEdit, onChange, children }) => (
+  <div>
+    <label className="small fw-bold text-muted text-uppercase mb-1 d-block" style={{ letterSpacing: "0.5px" }}>
+      <i className={`bi ${icon} me-1 text-primary`}></i>{label}
+    </label>
+    {isEdit ? (
+      children || (
+        <input
+          type={type}
+          className="form-control rounded-3"
+          name={name}
+          value={value || ""}
+          onChange={onChange}
+        />
+      )
+    ) : (
+      <p className="mb-0 fw-medium text-dark">{value || "—"}</p>
+    )}
+  </div>
+);
+
 const DoctorProfile = () => {
   const { doctorData, getDoctorData, doctortoken, backendUrl } = useContext(DoctorContext);
 
@@ -115,28 +143,6 @@ const DoctorProfile = () => {
       setSaving(false);
     }
   };
-
-  // ── Field helper ─────────────────────────────────────────────────────
-  const Field = ({ label, icon, name, type = "text", value, children }) => (
-    <div>
-      <label className="small fw-bold text-muted text-uppercase mb-1 d-block" style={{ letterSpacing: "0.5px" }}>
-        <i className={`bi ${icon} me-1 text-primary`}></i>{label}
-      </label>
-      {isEdit ? (
-        children || (
-          <input
-            type={type}
-            className="form-control rounded-3"
-            name={name}
-            value={value || ""}
-            onChange={handleChange}
-          />
-        )
-      ) : (
-        <p className="mb-0 fw-medium text-dark">{value || "—"}</p>
-      )}
-    </div>
-  );
 
   // ── Shimmer ───────────────────────────────────────────────────────────
   if (loading || !userData) {
@@ -249,25 +255,25 @@ const DoctorProfile = () => {
             </p>
             <div className="row g-4 mb-4">
               <div className="col-12 col-md-6">
-                <Field label="Full Name" icon="bi-person" name="name" value={userData.name} />
+                <Field label="Full Name" icon="bi-person" name="name" value={userData.name} isEdit={isEdit} onChange={handleChange} />
               </div>
               <div className="col-12 col-md-6">
-                <Field label="Email Address" icon="bi-envelope" name="email" type="email" value={userData.email} />
+                <Field label="Email Address" icon="bi-envelope" name="email" type="email" value={userData.email} isEdit={isEdit} onChange={handleChange} />
               </div>
               <div className="col-12 col-md-6">
-                <Field label="Speciality" icon="bi-heart-pulse" name="speciality" value={userData.speciality} />
+                <Field label="Speciality" icon="bi-heart-pulse" name="speciality" value={userData.speciality} isEdit={isEdit} onChange={handleChange} />
               </div>
               <div className="col-12 col-md-3">
-                <Field label="Degree" icon="bi-mortarboard" name="degree" value={userData.degree} />
+                <Field label="Degree" icon="bi-mortarboard" name="degree" value={userData.degree} isEdit={isEdit} onChange={handleChange} />
               </div>
               <div className="col-12 col-md-3">
-                <Field label="Experience" icon="bi-briefcase" name="experience" value={userData.experience} />
+                <Field label="Experience" icon="bi-briefcase" name="experience" value={userData.experience} isEdit={isEdit} onChange={handleChange} />
               </div>
               <div className="col-12 col-md-4">
-                <Field label="Consultation Fee (₹)" icon="bi-currency-rupee" name="fees" type="number" value={userData.fees} />
+                <Field label="Consultation Fee (₹)" icon="bi-currency-rupee" name="fees" type="number" value={userData.fees} isEdit={isEdit} onChange={handleChange} />
               </div>
               <div className="col-12">
-                <Field label="About" icon="bi-info-circle" name="about" value={userData.about}>
+                <Field label="About" icon="bi-info-circle" name="about" value={userData.about} isEdit={isEdit} onChange={handleChange}>
                   {isEdit && (
                     <textarea
                       className="form-control rounded-3"
@@ -287,10 +293,10 @@ const DoctorProfile = () => {
             </p>
             <div className="row g-4 mb-4">
               <div className="col-12 col-md-6">
-                <Field label="Address Line 1" icon="bi-geo-alt" name="line1" value={userData.address?.line1} />
+                <Field label="Address Line 1" icon="bi-geo-alt" name="line1" value={userData.address?.line1} isEdit={isEdit} onChange={handleChange} />
               </div>
               <div className="col-12 col-md-6">
-                <Field label="Address Line 2" icon="bi-geo" name="line2" value={userData.address?.line2} />
+                <Field label="Address Line 2" icon="bi-geo" name="line2" value={userData.address?.line2} isEdit={isEdit} onChange={handleChange} />
               </div>
             </div>
 
@@ -304,6 +310,7 @@ const DoctorProfile = () => {
                   label="Start Time"
                   icon="bi-clock"
                   value={userData.timings?.start}
+                  isEdit={isEdit}
                 >
                   {isEdit && (
                     <input
@@ -322,6 +329,7 @@ const DoctorProfile = () => {
                   label="End Time"
                   icon="bi-clock-history"
                   value={userData.timings?.end}
+                  isEdit={isEdit}
                 >
                   {isEdit && (
                     <input
@@ -340,6 +348,7 @@ const DoctorProfile = () => {
                   label="Slot Duration"
                   icon="bi-stopwatch"
                   value={`${userData.slotDuration} mins`}
+                  isEdit={isEdit}
                 >
                   {isEdit && (
                     <select

@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useState } from "react";
 import { AdminContext } from "../../context/AdminContext";
-import AdminChatPanel from "./AdminChatPanel";
+
 
 const Dashboard = () => {
   const { dashboardData, getDashboardData, adminToken, backendUrl } =
@@ -136,7 +136,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <AdminChatPanel backendUrl={backendUrl} aToken={adminToken} />
+      
 
       {/* Shimmer CSS */}
       <style jsx>{`

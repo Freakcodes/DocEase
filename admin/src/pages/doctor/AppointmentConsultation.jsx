@@ -11,6 +11,9 @@ const AppointmentConsultation = () => {
   const [appointment, setAppointment] = useState({});
   const [history, setHistory] = useState([]);
   const [userId, setUserId] = useState();
+
+  const [tests, setTests] = useState([""]);
+
   const { id } = useParams();
   const isCompleted = appointment?.isCompleted;
   const getAppointment = async () => {
@@ -37,7 +40,12 @@ const AppointmentConsultation = () => {
     try {
       const { data } = await axios.get(
         backendUrl + `/api/doctor/appointment-history/${userId}`,
-        { headers: { doctortoken: doctortoken } },
+        {
+          headers: { doctortoken: doctortoken },
+          params: {
+            currentAppointmentId:id,
+          },
+        },
       );
       if (data.success) {
         // console.log(data.appointments);
@@ -72,6 +80,7 @@ const AppointmentConsultation = () => {
           ? appointment?.doctorNotes?.tests
           : [""],
       );
+      console.log(appointment?.doctorNotes?.tests);
 
       setFollowUpDate(appointment?.doctorNotes?.followUpDate || "");
     }
@@ -100,8 +109,6 @@ const AppointmentConsultation = () => {
     },
   ]);
 
-  const [tests, setTests] = useState([""]);
-
   const [followUpDate, setFollowUpDate] = useState("");
 
   // =========================
@@ -116,8 +123,6 @@ const AppointmentConsultation = () => {
     paymentStatus: appointment?.payment ? "Paid" : "Unpaid",
     status: "Appointment Active",
   };
-
-  
 
   // =========================
   // MEDICINE FUNCTIONS
@@ -152,20 +157,19 @@ const AppointmentConsultation = () => {
   // =========================
   const handleTestChange = (index, value) => {
     const updatedTests = [...tests];
-
-    updatedTests[index] = value;
-
+    updatedTests[index] = { ...updatedTests[index], testName: value };
     setTests(updatedTests);
   };
 
   const addTest = () => {
-    setTests([...tests, ""]);
-    console.log(tests);
+    if (tests.length > 0 && tests[tests.length - 1].testName.trim() === "") {
+      return; // don't add another empty field if the last one is still empty
+    }
+    setTests([...tests, { testName: "" }]);
   };
 
   const removeTest = (index) => {
     const updatedTests = tests.filter((_, i) => i !== index);
-
     setTests(updatedTests);
   };
 
@@ -199,7 +203,7 @@ const AppointmentConsultation = () => {
           med.duration.trim() !== "",
       );
 
-      const filteredTests = tests.filter((test) => test.trim() !== "");
+      const filteredTests = tests.filter((test) => test.testName.trim() !== "");
 
       const consultationData = {
         appointmentId: id,
@@ -456,15 +460,37 @@ const AppointmentConsultation = () => {
                 </div>
 
                 {tests.map((test, index) => (
-                  <div className="d-flex gap-2 mb-3" key={index}>
+                  <div
+                    className="d-flex gap-2 align-items-center mb-3"
+                    key={index}
+                  >
                     <input
                       type="text"
                       className="form-control"
                       placeholder="Enter test name"
-                      value={test}
+                      value={test.testName}
                       onChange={(e) => handleTestChange(index, e.target.value)}
                       disabled={isCompleted}
                     />
+
+                    {/* ✅ If a report has been uploaded for this test, show a View PDF link */}
+                    {isCompleted && test.uploaded && test.reportUrl && (
+                      <a
+                        href={test.reportUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn btn-sm btn-success rounded-pill text-nowrap"
+                      >
+                        <i className="fas fa-file-pdf me-1"></i>
+                        View Report
+                      </a>
+                    )}
+
+                    {isCompleted && !test.uploaded && (
+                      <span className="badge bg-warning-subtle text-warning-emphasis text-nowrap">
+                        Not uploaded yet
+                      </span>
+                    )}
 
                     {!isCompleted && (
                       <button
@@ -537,17 +563,18 @@ const AppointmentConsultation = () => {
                   Previous History
                 </h5>
 
-                {history?.map((history, index) => (
+                {history?.map((historyItem, index) => (
                   <Link
-                  to={`/appointment/${history._id}`}
-                  className="text-decoration-none"
+                    to={`/appointment/${historyItem._id}`}
+                    className="text-decoration-none"
+                    key={historyItem._id || index}
+                    target="_blank"
                   >
-                    <div
-                      key={index}
-                      className="border rounded-4 p-3 mb-3 bg-light"
-                    >
+                    <div className="border rounded-4 p-3 mb-3 bg-light">
                       <div className="d-flex justify-content-between align-items-center mb-2">
-                        <h6 className="fw-bold mb-0">{history?.slotDate}</h6>
+                        <h6 className="fw-bold mb-0">
+                          {historyItem?.slotDate}
+                        </h6>
 
                         <span className="badge bg-success-subtle text-success">
                           Completed
@@ -555,8 +582,8 @@ const AppointmentConsultation = () => {
                       </div>
 
                       <small className="text-muted">
-                        {history?.docData?.name} •{" "}
-                        {history?.docData?.speciality}
+                        {historyItem?.docData?.name} •{" "}
+                        {historyItem?.docData?.speciality}
                       </small>
 
                       <hr />
@@ -565,28 +592,54 @@ const AppointmentConsultation = () => {
                         <strong>Notes:</strong>
 
                         <p className="mb-2 text-muted">
-                          {history?.doctorNotes?.notes}
+                          {historyItem?.doctorNotes?.notes}
                         </p>
 
-                        {history?.doctorNotes?.medicines.length > 0 && (
+                        {historyItem?.doctorNotes?.medicines?.length > 0 && (
                           <>
                             <strong>Medicines:</strong>
 
                             <ul className="mb-2">
-                              {history?.doctorNotes?.medicines.map((med, i) => (
-                                <li key={i}>{med.name}</li>
-                              ))}
+                              {historyItem.doctorNotes.medicines.map(
+                                (med, i) => (
+                                  <li key={i}>{med.name}</li>
+                                ),
+                              )}
                             </ul>
                           </>
                         )}
 
-                        {history?.doctorNotes?.length > 0 && (
+                        {/* ✅ Fixed: was checking doctorNotes.length (always undefined) and history.tests (doesn't exist) */}
+                        {historyItem?.doctorNotes?.tests?.length > 0 && (
                           <>
                             <strong>Tests:</strong>
 
                             <ul className="mb-0">
-                              {history.tests.map((test, i) => (
-                                <li key={i}>{test.name}</li>
+                              {historyItem.doctorNotes.tests.map((test, i) => (
+                                <li
+                                  key={i}
+                                  className="d-flex justify-content-between align-items-center gap-2"
+                                >
+                                  <span>{test.testName}</span>
+
+                                  {/* ✅ Show PDF link if uploaded, else a small status badge */}
+                                  {test.uploaded && test.reportUrl ? (
+                                    <a
+                                      href={test.reportUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="badge bg-success text-decoration-none"
+                                    >
+                                      <i className="fas fa-file-pdf me-1"></i>
+                                      View
+                                    </a>
+                                  ) : (
+                                    <span className="badge bg-secondary-subtle text-secondary">
+                                      Not uploaded
+                                    </span>
+                                  )}
+                                </li>
                               ))}
                             </ul>
                           </>

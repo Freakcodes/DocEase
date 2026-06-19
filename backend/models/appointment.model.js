@@ -29,7 +29,16 @@ const appointmentSchema = new Schema({
       },
     ],
 
-   tests: [String],
+    // ✅ tests now carry their own upload status
+    tests: [
+      {
+        testName: { type: String, required: true },
+        reportUrl: { type: String, default: null },     // Cloudinary URL
+        cloudinaryId: { type: String, default: null },  // public_id, for deletion later
+        uploaded: { type: Boolean, default: false },
+        uploadedAt: { type: Date, default: null },
+      },
+    ],
 
     followUpDate: String, // keep consistent with your date format
     createdAt: { type: Date, default: Date.now },

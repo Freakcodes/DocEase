@@ -1,5 +1,5 @@
 import express from "express";
-import { bookAppointment, cancelAppointments, forgotPassword, getAppointment, listAllAppointments, loginUser, paymentRazorpay, registerUser, resetPassword, updateUserProfile, userProfile, verifyRazorPay,aiHealthAssistant, analyzeReport,chatWithReports } from "../controllers/user.controller.js";
+import { bookAppointment, cancelAppointments, forgotPassword, getAppointment, listAllAppointments, loginUser, paymentRazorpay, registerUser, resetPassword, updateUserProfile, userProfile, verifyRazorPay,aiHealthAssistant, analyzeReport,chatWithReports, uploadTestReport } from "../controllers/user.controller.js";
 import { authUser } from "../middlewares/user.middleware.js";
 import upload from "../middlewares/multer.middleware.js";
 import optionalAuth from "../middlewares/optionalAuth.middleware.js";
@@ -23,5 +23,6 @@ userRouter.post('/ai-health-assistant',aiHealthAssistant);
 
 userRouter.post('/ai-report-analysis',optionalAuth ,upload.array("reports",5),analyzeReport);
 userRouter.use('/chat',authUser,chatWithReports)
+userRouter.use('/upload-test-report',authUser,upload.single('report'),uploadTestReport) //this upload name should be one that is in the frontend 
 export default userRouter
 

@@ -385,6 +385,8 @@ const appointmentDetails = async (req, res) => {
 const getUserAppointmentHistory = async (req, res) => {
   try {
     const { id } = req.params;
+    const{currentAppointmentId}=req.query;
+
     if (!id) {
       return res.json({
         success: false,
@@ -393,7 +395,12 @@ const getUserAppointmentHistory = async (req, res) => {
     }
     const appointments = await appointmentModel.find({
       userId:id,
+      _id: { $ne: currentAppointmentId },
+      isCompleted:true
     });
+    
+
+    
 
     if (!appointments) {
       return res.json({

@@ -14,6 +14,10 @@ const AppointmentDetails = () => {
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
 
+  // ── Report upload state (per test, keyed by test index) ───────────────
+  // Shape: { [testIndex]: { file, preview, uploading } }
+  const [reportUploads, setReportUploads] = useState({});
+
   const downloadPDF = async (appointment) => {
     try {
       setDownloading(true);
@@ -50,6 +54,69 @@ const AppointmentDetails = () => {
       toast.error(error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ── Report upload handlers (per test) ────────────────────────────────
+  const handleReportFileChange = (testIndex, e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setReportUploads((prev) => ({
+      ...prev,
+      [testIndex]: {
+        file,
+        preview: file.type.startsWith("image/") ? URL.createObjectURL(file) : null,
+        uploading: false,
+      },
+    }));
+  };
+
+  const removeSelectedFile = (testIndex) => {
+    setReportUploads((prev) => {
+      const next = { ...prev };
+      delete next[testIndex];
+      return next;
+    });
+  };
+
+  const handleReportUpload = async (testIndex, testName) => {
+    const entry = reportUploads[testIndex];
+    if (!entry?.file) {
+      toast.warn("Please select a file first");
+      return;
+    }
+    try {
+      setReportUploads((prev) => ({
+        ...prev,
+        [testIndex]: { ...prev[testIndex], uploading: true },
+      }));
+
+      const formData = new FormData();
+      formData.append("report", entry.file);
+      formData.append("appointmentId", id);
+      formData.append("testName", testName);
+      formData.append("docId", appointment.docId);
+      // TODO: replace with actual endpoint
+      const { data } = await axios.post(
+        backEndUrl + "/api/user/upload-test-report",
+        formData,
+        { headers: { usertoken: token } }
+      );
+
+      if (data.success) {
+        toast.success(`Report for "${testName}" uploaded successfully`);
+        console.log(data.fileUrl);
+        removeSelectedFile(testIndex);
+        getAppointment();
+      } else {
+        toast.error(data.message || "Failed to upload report");
+      }
+    } catch (error) {
+      toast.error(error.message || "Failed to upload report");
+      setReportUploads((prev) => ({
+        ...prev,
+        [testIndex]: { ...prev[testIndex], uploading: false },
+      }));
     }
   };
 
@@ -252,15 +319,107 @@ const AppointmentDetails = () => {
                     </span>
                     Recommended Tests
                   </p>
-                  <div className="row g-2">
-                    {notes.tests.map((test, i) => (
-                      <div className="col-12 col-sm-6" key={i}>
-                        <div className="d-flex align-items-center gap-2 border rounded-3 p-3 bg-white">
-                          <i className="bi bi-check-circle-fill text-success flex-shrink-0"></i>
-                          <span className="fw-medium">{test}</span>
+                  <div className="d-flex flex-column gap-3">
+                    {notes.tests.map((test, i) => {
+                      const entry = reportUploads[i];
+                      // ✅ uploaded URL lives directly on the test object now
+                      const uploadedUrl = test.reportUrl;
+
+                      return (
+                        <div key={i} className="border rounded-3 bg-white p-3">
+                          {/* Test name row */}
+                          <div className="d-flex align-items-center gap-2 mb-3">
+                            <i className="bi bi-check-circle-fill text-success flex-shrink-0"></i>
+                            <span className="fw-medium">{test.testName}</span>
+                          </div>
+
+                          {/* ✅ Already uploaded → show link instead of upload widget */}
+                          {uploadedUrl ? (
+                            <div className="d-flex align-items-center gap-3 bg-success bg-opacity-10 border border-success-subtle rounded-3 p-3">
+                              <div
+                                className="rounded-3 bg-success bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
+                                style={{ width: "48px", height: "48px" }}
+                              >
+                                <i className="bi bi-file-earmark-check text-success fs-5"></i>
+                              </div>
+                              <div className="flex-grow-1 overflow-hidden">
+                                <p className="fw-semibold small mb-0">Report uploaded</p>
+                                <p className="text-muted small mb-0 text-truncate">{test.testName}</p>
+                              </div>
+                              <a
+                                href={uploadedUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="btn btn-sm btn-success rounded-3 flex-shrink-0 fw-semibold px-3"
+                              >
+                                <i className="bi bi-eye me-1"></i>View
+                              </a>
+                            </div>
+                          ) : !entry?.file ? (
+                            <label
+                              htmlFor={`reportUpload-${i}`}
+                              className="d-flex align-items-center justify-content-center gap-2 rounded-3 border border-2 border-primary border-opacity-25 bg-light py-3 px-3"
+                              style={{ cursor: "pointer", borderStyle: "dashed" }}
+                            >
+                              <i className="bi bi-cloud-arrow-up text-primary"></i>
+                              <span className="fw-semibold small text-primary">
+                                Upload report for this test
+                              </span>
+                              <span className="text-muted small">&middot; PDF, JPG, PNG &middot; up to 10MB</span>
+                              <input
+                                id={`reportUpload-${i}`}
+                                type="file"
+                                accept=".pdf,.jpg,.jpeg,.png"
+                                className="d-none"
+                                onChange={(e) => handleReportFileChange(i, e)}
+                              />
+                            </label>
+                          ) : (
+                            <div className="d-flex align-items-center gap-3 bg-light border rounded-3 p-3">
+                              {entry.preview ? (
+                                <img
+                                  src={entry.preview}
+                                  alt="preview"
+                                  className="rounded-3 flex-shrink-0"
+                                  style={{ width: "48px", height: "48px", objectFit: "cover" }}
+                                />
+                              ) : (
+                                <div className="rounded-3 bg-primary bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
+                                  style={{ width: "48px", height: "48px" }}>
+                                  <i className="bi bi-file-earmark-pdf text-primary fs-5"></i>
+                                </div>
+                              )}
+
+                              <div className="flex-grow-1 overflow-hidden">
+                                <p className="fw-semibold small mb-0 text-truncate">{entry.file.name}</p>
+                                <p className="text-muted small mb-0">
+                                  {(entry.file.size / 1024).toFixed(0)} KB
+                                </p>
+                              </div>
+
+                              <button
+                                className="btn btn-sm btn-outline-danger rounded-3 flex-shrink-0"
+                                onClick={() => removeSelectedFile(i)}
+                                disabled={entry.uploading}
+                              >
+                                <i className="bi bi-trash"></i>
+                              </button>
+
+                              <button
+                                className="btn btn-sm btn-primary rounded-3 flex-shrink-0 fw-semibold px-3"
+                                onClick={() => handleReportUpload(i, test.testName)}
+                                disabled={entry.uploading}
+                              >
+                                {entry.uploading
+                                  ? <span className="spinner-border spinner-border-sm" role="status"></span>
+                                  : <><i className="bi bi-upload me-1"></i>Upload</>
+                                }
+                              </button>
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}

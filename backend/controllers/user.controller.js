@@ -1,4 +1,5 @@
 import userModel from "../models/user.model.js";
+import userReportModel from "../models/testReport.model.js";
 import validator from "validator";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -16,7 +17,8 @@ import { PDFParse } from "pdf-parse";
 import reportModel from "../models/report.model.js";
 import { pineconeIndex } from "../config/pinecone.js";
 import { pipeline } from "@xenova/transformers";
-import { text } from "stream/consumers";
+import { log } from "console";
+
 // import { embed } from "@pinecone-database/pinecone/dist/inference/embed.js";
 // import pdfParse from "pdf-parse"
 // import { CombineIcon } from "lucide-react";
@@ -27,8 +29,8 @@ const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
 });
 const registerUser = async (req, res) => {
-  const { name, email, password,dob } = req.body;
-  
+  const { name, email, password, dob } = req.body;
+
   if (!validator.isEmail(email)) {
     res.json({ success: false, message: "Enter a valid email" });
   }
@@ -55,7 +57,7 @@ const registerUser = async (req, res) => {
   const user = await newUser.save();
 
   const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
-  res.json({ success: true, token, user });
+  return res.json({ success: true, token, user });
 };
 const loginUser = async (req, res) => {
   const { email, password } = req.body;
@@ -269,7 +271,7 @@ const razorpayInstance = new razorpay({
 const paymentRazorpay = async (req, res) => {
   try {
     const { appointmentId } = req.body;
-    
+
     const appointmentData = await appointmentModel.findById(appointmentId);
 
     if (!appointmentData || appointmentData.cancelled) {
@@ -286,23 +288,20 @@ const paymentRazorpay = async (req, res) => {
     };
     // console.log(options);
     //creation of an order
-   console.log('before the payment all good');
+    console.log("before the payment all good");
 
-try {
-  const order = await razorpayInstance.orders.create(options);
-  console.log('I am here');
-  console.log('Order created:', order);
-   return res.json({ success: true, order });
-} catch (error) {
-  return res.json({
-      success: false,
-      message: error.code,
-    });
-  console.log('Razorpay Error:', error); // This will show the REAL error
-}
-    
-    
-    
+    try {
+      const order = await razorpayInstance.orders.create(options);
+      console.log("I am here");
+      console.log("Order created:", order);
+      return res.json({ success: true, order });
+    } catch (error) {
+      return res.json({
+        success: false,
+        message: error.code,
+      });
+      console.log("Razorpay Error:", error); // This will show the REAL error
+    }
   } catch (error) {
     return res.json({
       success: false,
@@ -390,342 +389,6 @@ const resetPassword = async (req, res) => {
   }
 };
 
-//ai report analysis..
-// const analyzeReport = async (req, res) => {
-//   try {
-//     // File received from multer
-//     const files = req.files;
-//     const userId = req.userId;
-//     // No files uploaded
-//     if (!files || files.length === 0) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "No files uploaded",
-//       });
-//     }
-
-//     let combinedText = "";
-//     let filePath = "";
-//     // Loop through all uploaded files
-//     for (const file of files) {
-//       filePath = file.path;
-
-//       // IMAGE FILES
-//       if (file.mimetype.startsWith("image/")) {
-//         const imageBuffer = fs.readFileSync(filePath);
-
-//         const base64Image = imageBuffer.toString("base64");
-
-//         const response = await ai.models.generateContent({
-//           model: "gemini-2.5-flash",
-
-//           contents: [
-//             {
-//               role: "user",
-//               parts: [
-//                 {
-//                   text: `
-// Extract all readable text from this medical report image.
-
-// Rules:
-// - Return only extracted text
-// - Preserve formatting as much as possible
-// - Do not summarize
-// - Do not explain anything
-// `,
-//                 },
-
-//                 {
-//                   inlineData: {
-//                     mimeType: file.mimetype,
-//                     data: base64Image,
-//                   },
-//                 },
-//               ],
-//             },
-//           ],
-//         });
-
-//         const extractedText = response.text;
-
-//         combinedText += extractedText + "\n\n";
-
-//         // Clean text
-//       } else if (file.mimetype === "application/pdf") {
-//         console.log("PDF uploaded");
-
-//         const dataBuffer = fs.readFileSync(filePath);
-
-//         const parser = new PDFParse({ url: filePath });
-
-//         const result = await parser.getText();
-
-//         combinedText = result.text;
-//       } else {
-//         return res.status(400).json({
-//           success: false,
-//           message: "Unsupported file type",
-//         });
-//       }
-
-//       // CLEAN TEXT FALLBACK IF SOME ERROR
-//       // const cleanedText = combinedText
-//       //   .replace(/\t/g, " ")
-//       //   .replace(/\r/g, "")
-//       //   .trim();
-
-//       const cleanedText = combinedText
-//         // remove tabs
-//         .replace(/\t/g, " ")
-
-//         // remove carriage returns
-//         .replace(/\r/g, "")
-
-//         // replace multiple newlines with single newline
-//         .replace(/\n{2,}/g, "\n")
-
-//         // join broken lines inside sentences
-//         .replace(/([a-zA-Z,])\n([a-zA-Z])/g, "$1 $2")
-
-//         // remove extra spaces
-//         .replace(/ {2,}/g, " ")
-
-//         // trim start/end
-//         .trim();
-
-//       //now ai prompt
-//       const prompt = `
-// You are an AI medical report analysis assistant.
-
-// Analyze the following medical report carefully.
-
-// Return ONLY valid JSON.
-
-// STRICT JSON FORMAT:
-
-// {
-//   "report_type": "string",
-//   "summary": "string",
-
-//   "abnormalities": [
-//     {
-//       "test": "string",
-//       "value": "string",
-//       "reference_range": "string",
-//       "status": "High | Low | Abnormal | Critical",
-//       "reason": "simple patient friendly explanation"
-//     }
-//   ],
-
-//   "possible_concerns": [
-//     "string"
-//   ],
-
-//   "precautions": [
-//     "string"
-//   ],
-
-//   "recommended_specialist": "string",
-
-//   "doctor_consultation_needed": true
-// }
-
-// IMPORTANT RULES:
-
-// - Return ONLY valid JSON
-// - Do NOT return markdown
-// - Do NOT add explanation outside JSON
-// - Do NOT add HTML
-// - Do NOT add extra keys
-// - Always follow the exact schema
-// - abnormalities MUST always be an array of objects
-// - possible_concerns MUST always be an array of strings
-// - precautions MUST always be an array of strings
-// - doctor_consultation_needed MUST always be boolean
-
-// ABNORMALITY RULES:
-
-// - Include ONLY abnormal or borderline abnormal values
-// - Ignore clearly normal values
-// - status should be:
-//   - "High"
-//   - "Low"
-//   - "Abnormal"
-//   - "Critical"
-
-// - Keep reason very short and simple
-// - Example:
-
-// {
-//   "test": "WBC Count",
-//   "value": "10570 /cmm",
-//   "reference_range": "4000 - 10000 /cmm",
-//   "status": "High",
-//   "reason": "White blood cell count is slightly elevated."
-// }
-
-// SUMMARY RULES:
-
-// - Keep summary short
-// - Maximum 3-4 sentences
-// - Use simple patient-friendly language
-// - Do not give final diagnosis
-// - Mention major findings only
-
-// SPECIALIST RULES:
-
-// Examples:
-// - Cardiologist
-// - Diabetologist
-// - General Physician
-// - Hematologist
-// - Endocrinologist
-
-// CONSULTATION RULES:
-
-// Return true if:
-// - diabetes indicators present
-// - very abnormal values exist
-// - multiple abnormalities exist
-// - critical findings exist
-
-// Otherwise return false.
-
-// Medical Report:
-// ${cleanedText}
-// `;
-
-//       // =========================
-//       // GEMINI RESPONSE
-//       // =========================
-//       const response = await ai.models.generateContent({
-//         model: "gemini-2.5-flash",
-//         contents: prompt,
-//       });
-
-//       let rawText = response.text;
-
-//       // Remove accidental markdown
-//       rawText = rawText
-//         .replace(/```json/g, "")
-//         .replace(/```/g, "")
-//         .trim();
-
-//       // =========================
-//       // PARSE JSON
-//       // =========================
-//       let parsedResponse;
-
-//       try {
-//         parsedResponse = JSON.parse(rawText);
-//       } catch (parseError) {
-//         return res.json({
-//           success: false,
-//           message: "Failed to parse AI response",
-//         });
-//       }
-
-//       //parsedResponse means the cleaned AI response
-//       if (!userId) {
-//         return res.status(200).json({
-//           success: true,
-//           data: parsedResponse,
-//         });
-//       }
-//       const report = await reportModel.create({
-//         userId,
-
-//         reportType: parsedResponse.report_type,
-
-//         fileUrl: filePath,
-
-//         extractedText: cleanedText,
-
-//         aiAnalysis: parsedResponse,
-
-//         embeddingStored: false,
-//       });
-
-//       const textToEmbed = `
-// Report Type: ${parsedResponse.report_type}
-
-// Summary:
-// ${parsedResponse.summary}
-
-// Abnormalities:
-// ${parsedResponse.abnormalities
-//   .map((a) => `${a.test}: ${a.value} (${a.status}) - ${a.reason}`)
-//   .join("\n")}
-
-// Possible Concerns:
-// ${parsedResponse.possible_concerns.join("\n")}
-
-// Precautions:
-// ${parsedResponse.precautions.join("\n")}
-
-// Recommended Specialist:
-// ${parsedResponse.recommended_specialist}
-
-// Doctor Consultation Needed:
-// ${parsedResponse.doctor_consultation_needed}
-// `;
-
-// console.log(textToEmbed);
-
-//       const embedder = await pipeline(
-//         "feature-extraction",
-//         "Xenova/bge-base-en-v1.5",
-//       );
-
-//       const output = await embedder(textToEmbed, {
-//         pooling: "mean",
-//         normalize: true,
-//       });
-
-//       const embedding = Array.from(output.data);
-//       console.log(embedding);
-//       return ;
-//       // store embeddings in Pinecone
-//       await pineconeIndex.upsert({
-//         records: [
-//           {
-//             id: report._id.toString(),
-//             values: embedding,
-//             metadata: {
-//               userId: userId.toString(),
-//               reportId: report._id.toString(),
-//               reportType: "Medical Report",
-//               reportText: cleanedText.slice(0, 8000),
-//             },
-//           },
-//         ],
-//       });
-//       console.log("uploaded in vector DB");
-
-//       //update status
-
-//       report.embeddingStored = true;
-
-//       await report.save();
-
-//       return res.status(200).json({
-//         success: true,
-//         data: parsedResponse,
-//         reportId: report._id,
-//       });
-//     }
-//   } catch (error) {
-//     console.log(error);
-
-//     return res.status(500).json({
-//       success: false,
-//       message: "Server Error",
-//     });
-//   }
-// };
-
-//prev version of the 
-// ─── Singleton embedder (initialize once, reuse across requests) ───────────────
 let embedderInstance = null;
 async function getEmbedder() {
   if (!embedderInstance) {
@@ -806,7 +469,9 @@ const analyzeReport = async (req, res) => {
     const userId = req.userId;
 
     if (!files || files.length === 0) {
-      return res.status(400).json({ success: false, message: "No files uploaded" });
+      return res
+        .status(400)
+        .json({ success: false, message: "No files uploaded" });
     }
 
     // ── Step 1: Extract text from ALL files first, THEN process ──────────────
@@ -819,27 +484,30 @@ const analyzeReport = async (req, res) => {
         const base64Image = fs.readFileSync(filePath).toString("base64");
         const response = await ai.models.generateContent({
           model: "gemini-2.5-flash",
-          contents: [{
-            role: "user",
-            parts: [
-              { text: "Extract all readable text from this medical report image.\nRules:\n- Return only extracted text\n- Preserve formatting\n- Do not summarize\n- Do not explain" },
-              { inlineData: { mimeType: file.mimetype, data: base64Image } },
-            ],
-          }],
+          contents: [
+            {
+              role: "user",
+              parts: [
+                {
+                  text: "Extract all readable text from this medical report image.\nRules:\n- Return only extracted text\n- Preserve formatting\n- Do not summarize\n- Do not explain",
+                },
+                { inlineData: { mimeType: file.mimetype, data: base64Image } },
+              ],
+            },
+          ],
         });
         combinedText += response.text + "\n\n";
-
       } else if (file.mimetype === "application/pdf") {
         const dataBuffer = fs.readFileSync(filePath);
-      
 
         const parser = new PDFParse({ url: filePath });
 
         const result = await parser.getText();
         combinedText += result.text + "\n\n";
-
       } else {
-        return res.status(400).json({ success: false, message: "Unsupported file type" });
+        return res
+          .status(400)
+          .json({ success: false, message: "Unsupported file type" });
       }
     }
 
@@ -890,13 +558,18 @@ ${cleanedText}`;
       contents: prompt,
     });
 
-    let rawText = aiResponse.text.replace(/```json/g, "").replace(/```/g, "").trim();
+    let rawText = aiResponse.text
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
 
     let parsedResponse;
     try {
       parsedResponse = JSON.parse(rawText);
     } catch {
-      return res.status(500).json({ success: false, message: "Failed to parse AI response" });
+      return res
+        .status(500)
+        .json({ success: false, message: "Failed to parse AI response" });
     }
 
     // ── Step 4: Return early if no userId (guest user) ────────────────────────
@@ -907,7 +580,7 @@ ${cleanedText}`;
     // ── Step 5: Save report to MongoDB ────────────────────────────────────────
     const report = await reportModel.create({
       userId,
-      reportType: parsedResponse.report_type,        // was hardcoded before
+      reportType: parsedResponse.report_type, // was hardcoded before
       fileUrl: files[0].path,
       extractedText: cleanedText,
       aiAnalysis: parsedResponse,
@@ -936,17 +609,23 @@ Doctor Consultation Needed: ${parsedResponse.doctor_consultation_needed}
 
     // ── Step 7: Chunk + embed (batched, not one per chunk) ────────────────────
     const chunks = chunkText(textToEmbed);
-    const embedder = await getEmbedder();             // reuses singleton
+    const embedder = await getEmbedder(); // reuses singleton
 
     const embeddings = await Promise.all(
       chunks.map(async (chunk) => {
-        const output = await embedder(chunk, { pooling: "mean", normalize: true });
+        const output = await embedder(chunk, {
+          pooling: "mean",
+          normalize: true,
+        });
         return Array.from(output.data);
-      })
+      }),
     );
 
     // ── Step 8: Build rich metadata ───────────────────────────────────────────
-    const reportVersion = await getReportVersion(userId, parsedResponse.report_type);
+    const reportVersion = await getReportVersion(
+      userId,
+      parsedResponse.report_type,
+    );
     const keyValues = extractKeyValues(parsedResponse.abnormalities);
     const uploadedAt = Date.now();
 
@@ -956,13 +635,13 @@ Doctor Consultation Needed: ${parsedResponse.doctor_consultation_needed}
       metadata: {
         userId: userId.toString(),
         reportId: report._id.toString(),
-        reportType: parsedResponse.report_type,      // was "Medical Report" before
-        reportVersion,                               // 1, 2, 3... for comparison
-        uploadedAt,                                  // timestamp for ordering
+        reportType: parsedResponse.report_type, // was "Medical Report" before
+        reportVersion, // 1, 2, 3... for comparison
+        uploadedAt, // timestamp for ordering
         chunkIndex: i,
         chunkText: chunk.slice(0, 1000),
         abnormalTests: parsedResponse.abnormalities.map((a) => a.test),
-        keyValues: JSON.stringify(keyValues),        // numeric values for diffing
+        keyValues: JSON.stringify(keyValues), // numeric values for diffing
       },
     }));
 
@@ -976,14 +655,14 @@ Doctor Consultation Needed: ${parsedResponse.doctor_consultation_needed}
     let comparisonInsight = null;
 
     if (reportVersion > 1) {
-      const dummyEmbedding = embeddings[0];          // use first chunk vector to query
+      const dummyEmbedding = embeddings[0]; // use first chunk vector to query
 
       const previousResults = await pineconeIndex.query({
         vector: dummyEmbedding,
         filter: {
           userId: { $eq: userId.toString() },
           reportType: { $eq: parsedResponse.report_type },
-          chunkIndex: { $eq: 0 },                    // only first chunks = one per report
+          chunkIndex: { $eq: 0 }, // only first chunks = one per report
         },
         topK: 5,
         includeMetadata: true,
@@ -997,7 +676,11 @@ Doctor Consultation Needed: ${parsedResponse.doctor_consultation_needed}
       if (previousMatches.length > 0) {
         const prev = previousMatches[0];
         const prevKeyValues = JSON.parse(prev.metadata.keyValues || "{}");
-        comparisonInsight = buildComparison(prevKeyValues, keyValues, prev.metadata.uploadedAt);
+        comparisonInsight = buildComparison(
+          prevKeyValues,
+          keyValues,
+          prev.metadata.uploadedAt,
+        );
       }
     }
 
@@ -1006,21 +689,24 @@ Doctor Consultation Needed: ${parsedResponse.doctor_consultation_needed}
       success: true,
       data: parsedResponse,
       reportId: report._id,
-      comparison: comparisonInsight,   // null on first upload, populated on subsequent
+      comparison: comparisonInsight, // null on first upload, populated on subsequent
     });
-
   } catch (error) {
     console.error(error);
     return res.status(500).json({ success: false, message: "Server Error" });
   }
 };
 
-
 // =========================
 // RAG CHAT CONTROLLER
 // =========================
-const ragChat = async (userQuestion, reportId, userId, reportSummary = null, chatHistory = []) => {
-
+const ragChat = async (
+  userQuestion,
+  reportId,
+  userId,
+  reportSummary = null,
+  chatHistory = [],
+) => {
   // ── Step 1: Classify question type ─────────────────────────────────────────
   const classifyResponse = await ai.models.generateContent({
     model: "gemini-2.5-flash",
@@ -1035,11 +721,15 @@ Reply with ONLY one word: summary or specific`,
   const questionType = classifyResponse.text.trim().toLowerCase();
 
   // ── Step 2: Build conversation history string for context ──────────────────
-  const historyContext = chatHistory.length > 0
-    ? `Previous conversation:\n${chatHistory
-        .map((m) => `${m.role === "user" ? "Patient" : "Assistant"}: ${m.content}`)
-        .join("\n")}\n\n`
-    : "";
+  const historyContext =
+    chatHistory.length > 0
+      ? `Previous conversation:\n${chatHistory
+          .map(
+            (m) =>
+              `${m.role === "user" ? "Patient" : "Assistant"}: ${m.content}`,
+          )
+          .join("\n")}\n\n`
+      : "";
 
   // ── Step 3: Summary path — answer directly from structured data ────────────
   if (questionType === "summary" && reportSummary) {
@@ -1069,8 +759,11 @@ Answer:`;
   }
 
   // ── Step 4: Specific path — embed question and query Pinecone ──────────────
-  const embedder = await getEmbedder();                // fixed: uses singleton
-  const output = await embedder(userQuestion, { pooling: "mean", normalize: true });
+  const embedder = await getEmbedder(); // fixed: uses singleton
+  const output = await embedder(userQuestion, {
+    pooling: "mean",
+    normalize: true,
+  });
   const questionEmbedding = Array.from(output.data);
 
   const results = await pineconeIndex.query({
@@ -1078,7 +771,7 @@ Answer:`;
     topK: 5,
     filter: {
       reportId: reportId.toString(),
-      userId: userId.toString(),             // fixed: scoped to this user
+      userId: userId.toString(), // fixed: scoped to this user
     },
     includeMetadata: true,
   });
@@ -1087,15 +780,17 @@ Answer:`;
 
   if (relevantMatches.length === 0) {
     return {
-      answer: "I couldn't find specific information about that in your report. Try asking a broader question, or ask your doctor directly.",
+      answer:
+        "I couldn't find specific information about that in your report. Try asking a broader question, or ask your doctor directly.",
       type: "no_match",
     };
   }
 
   // ── Step 5: Build context from chunks ──────────────────────────────────────
   const context = relevantMatches
-    .map((match, i) =>
-      `Excerpt ${i + 1} (relevance: ${(match.score * 100).toFixed(1)}%):\n${match.metadata.chunkText}`,   // fixed: chunkText not reportText
+    .map(
+      (match, i) =>
+        `Excerpt ${i + 1} (relevance: ${(match.score * 100).toFixed(1)}%):\n${match.metadata.chunkText}`, // fixed: chunkText not reportText
     )
     .join("\n\n---\n\n");
 
@@ -1136,17 +831,26 @@ export const chatWithReports = async (req, res) => {
     if (chatHistory.length === 0) {
       const report = await reportModel.findOne({ _id: reportId, userId });
       if (!report) {
-        return res.status(404).json({ success: false, message: "Report not found" });
+        return res
+          .status(404)
+          .json({ success: false, message: "Report not found" });
       }
       reportSummary = report.aiAnalysis;
     }
 
     const trimmedHistory = chatHistory.slice(-6);
 
-    const result = await ragChat(question, reportId, userId, reportSummary, trimmedHistory);
+    const result = await ragChat(
+      question,
+      reportId,
+      userId,
+      reportSummary,
+      trimmedHistory,
+    );
 
-    return res.status(200).json({ success: true, answer: result.answer, type: result.type });
-
+    return res
+      .status(200)
+      .json({ success: true, answer: result.answer, type: result.type });
   } catch (error) {
     console.error("RAG chat error:", error);
     return res.status(500).json({ success: false, message: "Server Error" });
@@ -1265,8 +969,7 @@ ${symptoms}
       model: "gemini-2.5-flash",
       contents: prompt,
     });
-    
-    
+
     let rawText = response.text;
 
     // Remove accidental markdown
@@ -1274,14 +977,13 @@ ${symptoms}
       .replace(/```json/g, "")
       .replace(/```/g, "")
       .trim();
-      
-      
+
     // =========================
     // PARSE JSON
     // =========================
     let parsedResponse;
 
-    try { 
+    try {
       parsedResponse = JSON.parse(rawText);
     } catch (parseError) {
       return res.json({
@@ -1313,6 +1015,66 @@ ${symptoms}
     });
   }
 };
+
+const uploadTestReport = async (req, res) => {
+  try {
+    const { appointmentId, testName } = req.body;
+    const pdfFile = req.file;
+    const userId = req.userId;
+
+    if (!pdfFile) {
+      return res.json({ success: false, message: "Something went wrong while uploading pdf" });
+    }
+
+    const appointment = await appointmentModel.findById(appointmentId);
+    if (!appointment) {
+      fs.unlink(pdfFile.path, () => {});
+      return res.json({ success: false, message: "Appointment not found" });
+    }
+
+    if (appointment.userId.toString() !== userId.toString()) {
+      fs.unlink(pdfFile.path, () => {});
+      return res.json({ success: false, message: "Not authorized for this appointment" });
+    }
+
+    // ✅ find the matching test inside the embedded array
+    const testEntry = appointment.doctorNotes.tests.find(
+      (t) => t.testName.trim().toLowerCase() === testName.trim().toLowerCase()
+    );
+
+    if (!testEntry) {
+      fs.unlink(pdfFile.path, () => {});
+      return res.json({ success: false, message: "This test was not prescribed for this appointment" });
+    }
+
+    if (testEntry.uploaded) {
+      fs.unlink(pdfFile.path, () => {});
+      return res.json({ success: false, message: "A report for this test has already been uploaded" });
+    }
+
+    const pdfUpload = await cloudinary.uploader.upload(pdfFile.path, {
+      resource_type: "raw",
+      folder: "patient_reports",
+    });
+
+    // ✅ update the embedded test entry directly
+    testEntry.reportUrl = pdfUpload.secure_url;
+    testEntry.cloudinaryId = pdfUpload.public_id;
+    testEntry.uploaded = true;
+    testEntry.uploadedAt = new Date();
+
+    await appointment.save();
+
+    fs.unlink(pdfFile.path, (err) => {
+      if (err) console.error("Failed to delete temp file:", err.message);
+    });
+
+    return res.json({ success: true, fileUrl: pdfUpload.secure_url, appointmentData: appointment });
+  } catch (error) {
+    console.error(error);
+    return res.json({ success: false, message: error.message });
+  }
+};
 export {
   registerUser,
   loginUser,
@@ -1328,4 +1090,5 @@ export {
   getAppointment,
   aiHealthAssistant,
   analyzeReport,
+  uploadTestReport
 };
