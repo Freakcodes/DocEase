@@ -78,7 +78,7 @@ const AIHealthAssistant = () => {
     setLoading(true);
     try {
       const { data } = await axios.post(
-        backendUrl + "/api/user/ai-health-assistant",
+        backEndUrl + "/api/user/ai-health-assistant",
         formData
       );
       if (data.success) {

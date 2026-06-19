@@ -8,6 +8,7 @@ import doctorModel from "../models/doctor.model.js";
 import appointmentModel from "../models/appointment.model.js";
 import razorpay from "razorpay";
 import crypto from "crypto";
+import streamifier from "streamifier";
 // import { log } from "console";
 import sendEmail from "../utils/sendEmail.js";
 import { GoogleGenAI } from "@google/genai";
@@ -25,6 +26,24 @@ import { log } from "console";
 
 // import doctorModel from "../models/doctor.model.js";
 
+
+//hepler function..
+const uploadToCloudinary = (buffer) => {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        resource_type: "raw",
+        folder: "patient_reports",
+      },
+      (error, result) => {
+        if (error) reject(error);
+        else resolve(result);
+      }
+    );
+
+    streamifier.createReadStream(buffer).pipe(stream);
+  });
+};
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
 });
@@ -1028,12 +1047,12 @@ const uploadTestReport = async (req, res) => {
 
     const appointment = await appointmentModel.findById(appointmentId);
     if (!appointment) {
-      fs.unlink(pdfFile.path, () => {});
+      
       return res.json({ success: false, message: "Appointment not found" });
     }
 
     if (appointment.userId.toString() !== userId.toString()) {
-      fs.unlink(pdfFile.path, () => {});
+      
       return res.json({ success: false, message: "Not authorized for this appointment" });
     }
 
@@ -1043,19 +1062,20 @@ const uploadTestReport = async (req, res) => {
     );
 
     if (!testEntry) {
-      fs.unlink(pdfFile.path, () => {});
+      
       return res.json({ success: false, message: "This test was not prescribed for this appointment" });
     }
 
     if (testEntry.uploaded) {
-      fs.unlink(pdfFile.path, () => {});
+      
       return res.json({ success: false, message: "A report for this test has already been uploaded" });
     }
 
-    const pdfUpload = await cloudinary.uploader.upload(pdfFile.path, {
-      resource_type: "raw",
-      folder: "patient_reports",
-    });
+    // const pdfUpload = await cloudinary.uploader.upload(pdfFile.path, {
+    //   resource_type: "raw",
+    //   folder: "patient_reports",
+    // });
+    const pdfUpload = await uploadToCloudinary(pdfFile.buffer);
 
     // ✅ update the embedded test entry directly
     testEntry.reportUrl = pdfUpload.secure_url;
@@ -1065,10 +1085,7 @@ const uploadTestReport = async (req, res) => {
 
     await appointment.save();
 
-    fs.unlink(pdfFile.path, (err) => {
-      if (err) console.error("Failed to delete temp file:", err.message);
-    });
-
+   
     return res.json({ success: true, fileUrl: pdfUpload.secure_url, appointmentData: appointment });
   } catch (error) {
     console.error(error);
