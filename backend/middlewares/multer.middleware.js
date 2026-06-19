@@ -2,7 +2,7 @@ import multer from 'multer'
 
 const storage = multer.diskStorage({
     destination: function (req, file, callback) {
-        callback(null, "uploads/");
+        callback(null);
     },
     filename: function (req, file, callback) {
         const uniqueName = `${Date.now()}-${file.originalname}`;

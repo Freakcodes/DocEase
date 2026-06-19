@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { useContext } from "react";
+import { AppContext } from "../context/AppContext";
 
 /* ── Collapsible section (mobile-friendly) ───────────────────────────────── */
 const Section = ({ title, icon, children, defaultOpen = true }) => {
@@ -64,8 +66,9 @@ const AIHealthAssistant = () => {
   const [loading, setLoading] = useState(false);
   const [aiResponse, setAiResponse] = useState(null);
   const [doctors, setDoctors] = useState([]);
+  const {backEndUrl}=useContext(AppContext);
   const navigate = useNavigate();
-  const backendUrl = "http://localhost:4000";
+  
 
   const handleChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
