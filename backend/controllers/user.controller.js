@@ -1,5 +1,5 @@
 import userModel from "../models/user.model.js";
-import userReportModel from "../models/testReport.model.js";
+
 import validator from "validator";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -29,35 +29,49 @@ const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
 });
 const registerUser = async (req, res) => {
-  const { name, email, password, dob } = req.body;
+  try {
+    const { name, email, password, dob } = req.body;
 
-  if (!validator.isEmail(email)) {
-    res.json({ success: false, message: "Enter a valid email" });
+    if (!validator.isEmail(email)) {
+      return res.json({ success: false, message: "Enter a valid email" });
+    }
+
+    if (password.length < 8) {
+      return res.json({
+        success: false,
+        message: "password must be 8 character long",
+      });
+    }
+
+    // Check if email is already registered
+    const existingUser = await userModel.findOne({ email });
+    if (existingUser) {
+      return res.json({ success: false, message: "Email already registered" });
+    }
+
+    const salt = await bcrypt.genSalt(8);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const userData = {
+      name,
+      email,
+      dob,
+      password: hashedPassword,
+    };
+
+    const newUser = new userModel(userData);
+    const user = await newUser.save();
+
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
+
+   
+    
+
+    return res.json({ success: true, token, user});
+  } catch (error) {
+    console.error(error);
+    return res.json({ success: false, message: "Something went wrong" });
   }
-
-  if (password.length < 8) {
-    return res.json({
-      success: false,
-      message: "password must be 8 character long",
-    });
-  }
-
-  const salt = await bcrypt.genSalt(8);
-  const hashedPassword = await bcrypt.hash(password, salt);
-
-  const userData = {
-    name,
-    email,
-    dob,
-    password: hashedPassword,
-  };
-
-  const newUser = new userModel(userData);
-
-  const user = await newUser.save();
-
-  const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
-  return res.json({ success: true, token, user });
 };
 const loginUser = async (req, res) => {
   const { email, password } = req.body;
@@ -1023,7 +1037,10 @@ const uploadTestReport = async (req, res) => {
     const userId = req.userId;
 
     if (!pdfFile) {
-      return res.json({ success: false, message: "Something went wrong while uploading pdf" });
+      return res.json({
+        success: false,
+        message: "Something went wrong while uploading pdf",
+      });
     }
 
     const appointment = await appointmentModel.findById(appointmentId);
@@ -1034,22 +1051,31 @@ const uploadTestReport = async (req, res) => {
 
     if (appointment.userId.toString() !== userId.toString()) {
       fs.unlink(pdfFile.path, () => {});
-      return res.json({ success: false, message: "Not authorized for this appointment" });
+      return res.json({
+        success: false,
+        message: "Not authorized for this appointment",
+      });
     }
 
     // ✅ find the matching test inside the embedded array
     const testEntry = appointment.doctorNotes.tests.find(
-      (t) => t.testName.trim().toLowerCase() === testName.trim().toLowerCase()
+      (t) => t.testName.trim().toLowerCase() === testName.trim().toLowerCase(),
     );
 
     if (!testEntry) {
       fs.unlink(pdfFile.path, () => {});
-      return res.json({ success: false, message: "This test was not prescribed for this appointment" });
+      return res.json({
+        success: false,
+        message: "This test was not prescribed for this appointment",
+      });
     }
 
     if (testEntry.uploaded) {
       fs.unlink(pdfFile.path, () => {});
-      return res.json({ success: false, message: "A report for this test has already been uploaded" });
+      return res.json({
+        success: false,
+        message: "A report for this test has already been uploaded",
+      });
     }
 
     const pdfUpload = await cloudinary.uploader.upload(pdfFile.path, {
@@ -1069,10 +1095,49 @@ const uploadTestReport = async (req, res) => {
       if (err) console.error("Failed to delete temp file:", err.message);
     });
 
-    return res.json({ success: true, fileUrl: pdfUpload.secure_url, appointmentData: appointment });
+    return res.json({
+      success: true,
+      fileUrl: pdfUpload.secure_url,
+      appointmentData: appointment,
+    });
   } catch (error) {
     console.error(error);
     return res.json({ success: false, message: error.message });
+  }
+};
+
+const getUserReports = async (req, res) => {
+  try {
+    const reports = await reportModel
+      .find({ userId: req.userId })
+      .sort({ createdAt: -1 })
+      .select("reportType aiAnalysis.summary createdAt");
+
+    return res.json({ success: true, reports });
+  } catch (error) {
+    return res.json({
+      sucess: false,
+      message: error.message,
+    });
+  }
+};
+
+const getReportsById = async (req, res) => {
+  try {
+    const report = await reportModel.findOne({
+      _id: req.params.id,
+      userId: req.userId,
+    });
+
+    if (!report) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Report not found" });
+    }
+
+    return res.status(200).json({ success: true, report });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Server Error" });
   }
 };
 export {
@@ -1090,5 +1155,7 @@ export {
   getAppointment,
   aiHealthAssistant,
   analyzeReport,
-  uploadTestReport
+  uploadTestReport,
+  getUserReports,
+  getReportsById,
 };

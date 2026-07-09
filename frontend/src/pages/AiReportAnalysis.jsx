@@ -1,89 +1,344 @@
-import React, { useContext, useRef, useState, useEffect } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import axios from "axios";
 import ReactMarkdown from "react-markdown";
 import { AppContext } from "../context/AppContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const abnormalityBadgeCls = (status) => {
+  if (!status) return "bg-secondary-subtle text-secondary";
+  const s = status.toLowerCase();
+  if (s === "critical") return "bg-danger-subtle text-danger";
+  if (s === "high" || s === "low")
+    return "bg-warning-subtle text-warning-emphasis";
+  return "bg-secondary-subtle text-secondary";
+};
 
+// ── AiReportAnalysis ──────────────────────────────────────────────────────────
+// Handles three modes:
+//   1. /ai-report          → fresh upload + analyze + live chat
+//   2. /ai-report/:id      → reopen stored report → read-only analysis + fresh chat
+//   3. /report-history     → list of all past reports (navigate to /ai-report/:id)
+// All three live in this one file as separate view components, routed via `mode` prop.
 
-const AiReportAnalysis = () => {
-  const { token, backEndUrl } = useContext(AppContext);
+// ─────────────────────────────────────────────────────────────────────────────
+// VIEW: HISTORY LIST
+// ─────────────────────────────────────────────────────────────────────────────
+const HistoryView = ({ backEndUrl, token, navigate }) => {
+  const [reports, setReports] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const chatBottomRef = useRef(null);
-  const navigate=useNavigate();
-  const [selectedFiles, setSelectedFiles] = useState([]);
-  const [response, setResponse] = useState(null);
-  const [reportSummary, setReportSummary] = useState(null); // fix: was missing
-  const [reportId, setReportId] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [question, setQuestion] = useState("");
-  const [chatLoading, setChatLoading] = useState(false);
-  const [messages, setMessages] = useState([]);
+  useEffect(() => {
+    axios
+      .get(backEndUrl + "/api/user/reports", { headers: { usertoken: token } })
+      .then(({ data }) => {
+        if (data.success) setReports(data.reports);
+        console.log(data.reports);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="d-flex flex-column gap-3 mt-2">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="card border-0 shadow-sm rounded-4 p-4">
+            <div className="d-flex gap-3">
+              <div
+                className="rounded-3 bg-secondary bg-opacity-10 flex-shrink-0"
+                style={{ width: 48, height: 48 }}
+              />
+              <div className="flex-grow-1">
+                <div
+                  className="bg-secondary bg-opacity-10 rounded mb-2"
+                  style={{ height: 13, width: "40%" }}
+                />
+                <div
+                  className="bg-secondary bg-opacity-10 rounded mb-2"
+                  style={{ height: 11, width: "80%" }}
+                />
+                <div
+                  className="bg-secondary bg-opacity-10 rounded"
+                  style={{ height: 11, width: "55%" }}
+                />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (reports.length === 0) {
+    return (
+      <div className="card border-0 shadow-sm rounded-4 text-center py-5 mt-2">
+        <div
+          className="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center mx-auto mb-3"
+          style={{ width: 72, height: 72 }}
+        >
+          <i
+            className="bi bi-file-earmark-medical text-primary"
+            style={{ fontSize: "2rem" }}
+          />
+        </div>
+        <h6 className="fw-bold mb-1">No reports yet</h6>
+        <p className="text-muted small mb-4">
+          Upload a medical report to get AI-powered analysis
+        </p>
+        <button
+          className="btn btn-primary rounded-3 px-4 fw-semibold mx-auto"
+          onClick={() => navigate("/ai-report")}
+        >
+          <i className="bi bi-upload me-2" />
+          Upload a Report
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="d-flex flex-column gap-3 mt-2">
+      {reports.map((report) => (
+        <div
+          key={report._id}
+          className="card border-0 shadow-sm rounded-4 overflow-hidden"
+          style={{ cursor: "pointer" }}
+          onClick={() => navigate(`/ai-report/${report._id}`)}
+        >
+          <div className="bg-primary" style={{ height: "3px" }} />
+          <div className="card-body p-4">
+            <div className="d-flex align-items-start gap-3">
+              <div
+                className="rounded-3 bg-primary bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
+                style={{ width: 48, height: 48 }}
+              >
+                <i className="bi bi-file-earmark-text text-primary fs-5" />
+              </div>
+              <div className="flex-grow-1 overflow-hidden">
+                <div className="d-flex flex-wrap align-items-center gap-2 mb-1">
+                  <h6 className="fw-bold mb-0">
+                    {report.reportType || "Medical Report"}
+                  </h6>
+                  {report.aiAnalysis?.doctor_consultation_needed && (
+                    <span className="badge bg-danger-subtle text-danger rounded-pill px-2 py-1 small">
+                      <i className="bi bi-exclamation-circle me-1" />
+                      Consultation Needed
+                    </span>
+                  )}
+                </div>
+                <p className="text-muted small mb-2 text-truncate">
+                  {report.aiAnalysis?.summary
+                    ? report.aiAnalysis.summary.slice(0, 120) + "..."
+                    : "No summary available"}
+                </p>
+                <div className="d-flex flex-wrap gap-3 align-items-center">
+                  <span className="text-muted small">
+                    <i className="bi bi-calendar3 me-1 text-primary" />
+                    {new Date(report.createdAt).toLocaleDateString("en-IN", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </span>
+                  {report.aiAnalysis?.recommended_specialist && (
+                    <span className="text-muted small">
+                      <i className="bi bi-person-badge me-1 text-primary" />
+                      {report.aiAnalysis.recommended_specialist}
+                    </span>
+                  )}
+                  {report.aiAnalysis?.abnormalities?.length > 0 && (
+                    <span className="badge bg-warning-subtle text-warning-emphasis rounded-pill px-2 small">
+                      <i className="bi bi-exclamation-triangle me-1" />
+                      {report.aiAnalysis.abnormalities.length} abnormalit
+                      {report.aiAnalysis.abnormalities.length > 1 ? "ies" : "y"}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <i className="bi bi-chevron-right text-muted flex-shrink-0 mt-1" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VIEW: ANALYSIS PANEL (tabs: summary / abnormalities / precautions)
+// ─────────────────────────────────────────────────────────────────────────────
+const AnalysisPanel = ({ ai }) => {
   const [activeTab, setActiveTab] = useState("summary");
 
-  // fix: auto-scroll whenever messages change
+  return (
+    <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
+      <div className="bg-primary" style={{ height: "4px" }} />
+
+      {/* Tabs */}
+      <div className="d-flex border-bottom bg-white overflow-x-auto flex-shrink-0">
+        {[
+          { key: "summary", label: "Summary", icon: "bi-file-text" },
+          {
+            key: "abnormalities",
+            label: "Abnormalities",
+            icon: "bi-exclamation-circle",
+            count: ai?.abnormalities?.length,
+          },
+          { key: "precautions", label: "Precautions", icon: "bi-shield-check" },
+        ].map(({ key, label, icon, count }) => (
+          <button
+            key={key}
+            className="btn btn-link text-decoration-none px-4 py-3 rounded-0 border-0 fw-semibold small d-flex align-items-center gap-2 flex-shrink-0"
+            style={{
+              color: activeTab === key ? "#0d6efd" : "#6c757d",
+              borderBottom:
+                activeTab === key
+                  ? "2px solid #0d6efd"
+                  : "2px solid transparent",
+            }}
+            onClick={() => setActiveTab(key)}
+          >
+            <i className={`bi ${icon}`} />
+            {label}
+            {count > 0 && (
+              <span
+                className="badge bg-danger rounded-pill px-2"
+                style={{ fontSize: "10px" }}
+              >
+                {count}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      <div className="card-body p-4">
+        {/* Summary */}
+        {activeTab === "summary" && (
+          <div
+            className="rounded-3 p-4"
+            style={{ background: "#f0f9ff", borderLeft: "4px solid #0ea5e9" }}
+          >
+            <p
+              className="small fw-bold text-uppercase text-muted mb-2"
+              style={{ letterSpacing: "0.5px" }}
+            >
+              Analysis Summary
+            </p>
+            <p className="mb-0 text-dark" style={{ lineHeight: 1.75 }}>
+              {ai?.summary || "No summary available."}
+            </p>
+          </div>
+        )}
+
+        {/* Abnormalities */}
+        {activeTab === "abnormalities" &&
+          (ai?.abnormalities?.length === 0 ? (
+            <div className="text-center py-5">
+              <i
+                className="bi bi-check-circle-fill text-success"
+                style={{ fontSize: "3rem" }}
+              />
+              <p className="fw-bold mt-3 mb-1">All Clear</p>
+              <p className="text-muted small">
+                No abnormalities detected in this report.
+              </p>
+            </div>
+          ) : (
+            <div className="d-flex flex-column gap-3">
+              {ai?.abnormalities?.map((abn, i) => (
+                <div key={i} className="border rounded-3 p-3">
+                  <div className="d-flex justify-content-between align-items-start mb-2">
+                    <span className="fw-bold">{abn.test}</span>
+                    <span
+                      className={`badge rounded-pill px-3 ${abnormalityBadgeCls(abn.status)}`}
+                    >
+                      {abn.status}
+                    </span>
+                  </div>
+                  <div className="d-flex gap-3 small mb-2">
+                    <span className="text-muted">
+                      Value:{" "}
+                      <strong className="text-danger">{abn.value}</strong>
+                    </span>
+                    <span className="text-muted">
+                      Ref: {abn.reference_range}
+                    </span>
+                  </div>
+                  <p className="text-muted small mb-0">{abn.reason}</p>
+                </div>
+              ))}
+            </div>
+          ))}
+
+        {/* Precautions */}
+        {activeTab === "precautions" && (
+          <div className="d-flex flex-column gap-2">
+            {ai?.precautions?.length === 0 ? (
+              <p className="text-muted small text-center py-4">
+                No precautions listed.
+              </p>
+            ) : (
+              ai?.precautions?.map((item, i) => (
+                <div
+                  key={i}
+                  className="d-flex align-items-start gap-3 rounded-3 p-3"
+                  style={{ background: "#f0fdf4", border: "1px solid #bbf7d0" }}
+                >
+                  <i className="bi bi-check-circle-fill text-success flex-shrink-0 mt-1" />
+                  <p
+                    className="mb-0 small text-dark"
+                    style={{ lineHeight: 1.65 }}
+                  >
+                    {item}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VIEW: CHAT PANEL
+// ─────────────────────────────────────────────────────────────────────────────
+const ChatPanel = ({
+  backEndUrl,
+  token,
+  reportId,
+  reportSummary,
+  navigate,
+}) => {
+  const chatBottomRef = useRef(null);
+  const [question, setQuestion] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
+  const [messages, setMessages] = useState([
+    {
+      role: "assistant",
+      content:
+        "Your report has been analysed. Ask me anything about your results.",
+    },
+  ]);
+
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, chatLoading]);
 
-  const handleFileChange = (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length === 0) return;
-    const allowedTypes = ["application/pdf", "image/png", "image/jpeg", "image/jpg"];
-    const validatedFiles = [];
-    for (const file of files) {
-      if (!allowedTypes.includes(file.type)) { alert(`${file.name} is not supported`); continue; }
-      if (file.size > 10 * 1024 * 1024) { alert(`${file.name} exceeds 10MB`); continue; }
-      validatedFiles.push(file);
+  const sendMessage = async (overrideQ) => {
+    if (!token) {
+      navigate("/login");
+      return;
     }
-    setSelectedFiles(validatedFiles);
-    setResponse(null);
-    setReportSummary(null);
-    setMessages([]);
-  };
-
-  const handleRemoveFile = (indexToRemove) => {
-    setSelectedFiles(selectedFiles.filter((_, i) => i !== indexToRemove));
-  };
-
-  const handleSubmit = async () => {
-    if (selectedFiles.length === 0) return alert("Please select reports");
-    try {
-      setLoading(true);
-      const formData = new FormData();
-      selectedFiles.forEach((file) => formData.append("reports", file));
-      const { data } = await axios.post(
-        `${backEndUrl}/api/user/ai-report-analysis`,
-        formData,
-        { headers: { usertoken: token } },
-      );
-      if (data.success) {
-        setResponse(data.data);
-        setReportSummary(data.data);   // fix: store for chat use
-        setReportId(data.reportId);
-        setMessages([{
-          role: "assistant",
-          content: "Your medical report has been analyzed. Ask me anything about your results.",
-        }]);
-        setActiveTab("summary");
-      }
-    } catch (error) {
-      console.log(error);
-      alert("Something went wrong");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // fix: accept optional override so quick prompts can pass value directly
-  const handleSendMessage = async (overrideQuestion) => {
-    const q = (overrideQuestion ?? question).trim();
+    const q = (overrideQ ?? question).trim();
     if (!q) return;
 
-    const userMessage = { role: "user", content: q };
-    const currentMessages = [...messages, userMessage];
-
-    setMessages(currentMessages);
+    const userMsg = { role: "user", content: q };
+    const updatedHistory = [...messages, userMsg];
+    setMessages(updatedHistory);
     setQuestion("");
     setChatLoading(true);
 
@@ -93,394 +348,654 @@ const AiReportAnalysis = () => {
         {
           reportId,
           question: q,
-          chatHistory: messages,   // history before this message
-          // fix: only send reportSummary on the very first real user message
-          reportSummary: messages.filter((m) => m.role === "user").length === 0
-            ? reportSummary
-            : undefined,
+          chatHistory: messages,
+          reportSummary:
+            messages.filter((m) => m.role === "user").length === 0
+              ? reportSummary
+              : undefined,
         },
         { headers: { usertoken: token } },
       );
-
       if (data.success) {
-        setMessages((prev) => [...prev, { role: "assistant", content: data.answer }]);
+        setMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: data.answer },
+        ]);
       }
-    } catch (error) {
-      console.log(error);
-      alert("Failed to send message");
+    } catch (err) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "Something went wrong. Please try again.",
+        },
+      ]);
     } finally {
       setChatLoading(false);
     }
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter") { e.preventDefault(); handleSendMessage(); }
-  };
-
-  const statusColor = (status) => {
-    if (!status) return { bg: "#f1f5f9", text: "#475569" };
-    const s = status.toLowerCase();
-    if (s === "critical") return { bg: "#fef2f2", text: "#b91c1c" };
-    if (s === "high" || s === "low") return { bg: "#fff7ed", text: "#c2410c" };
-    return { bg: "#fef9c3", text: "#854d0e" };
-  };
+  const quickPrompts = [
+    "What are the key findings?",
+    "What should I do next?",
+    "Explain the abnormalities",
+    "Is this serious?",
+  ];
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "#f8fafc", fontFamily: "'DM Sans', sans-serif" }}>
+    <div
+      className="card border-0 shadow-sm rounded-4 overflow-hidden d-flex flex-column"
+      style={{ height: "520px" }}
+    >
+      <div className="bg-primary" style={{ height: "4px" }} />
 
-      {/* Google Font */}
-      <style>{`
-        
-        * { box-sizing: border-box; }
-        .chat-msg-md p { margin: 0 0 8px 0; }
-        .chat-msg-md p:last-child { margin-bottom: 0; }
-        .chat-msg-md strong { font-weight: 600; }
-        .chat-msg-md ul, .chat-msg-md ol { margin: 6px 0 6px 18px; padding: 0; }
-        .chat-msg-md li { margin-bottom: 4px; }
-        .tab-btn { background: none; border: none; cursor: pointer; padding: 10px 14px; font-size: 13px; font-family: inherit; font-weight: 500; color: #94a3b8; border-bottom: 2px solid transparent; transition: color .15s, border-color .15s; white-space: nowrap; }
-        .tab-btn.active { color: #2563eb; border-bottom-color: #2563eb; font-weight: 600; }
-        .tab-btn:hover:not(.active) { color: #475569; }
-        .file-chip { display:flex; align-items:center; gap:10px; padding:10px 14px; background:#fff; border:1px solid #e2e8f0; border-radius:10px; }
-        .remove-btn { width:24px; height:24px; border-radius:50%; background:#fee2e2; color:#dc2626; border:none; cursor:pointer; font-size:12px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-        .quick-chip { background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; border-radius:20px; padding:6px 14px; font-size:12px; font-family:inherit; cursor:pointer; transition:background .15s; white-space:nowrap; }
-        .quick-chip:hover { background:#dbeafe; }
-        .send-btn { width:42px; height:42px; border-radius:50%; background:linear-gradient(135deg,#2563eb,#4f46e5); color:#fff; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:opacity .15s; }
-        .send-btn:disabled { opacity:.5; cursor:not-allowed; }
-        .analyze-btn { width:100%; padding:14px; background:linear-gradient(135deg,#2563eb,#4f46e5); color:#fff; border:none; border-radius:12px; font-size:15px; font-weight:600; font-family:inherit; cursor:pointer; transition:opacity .15s; }
-        .analyze-btn:disabled { opacity:.6; cursor:not-allowed; }
-        .typing-dot { width:7px; height:7px; border-radius:50%; background:#94a3b8; animation: blink 1.2s infinite; }
-        .typing-dot:nth-child(2) { animation-delay:.2s; }
-        .typing-dot:nth-child(3) { animation-delay:.4s; }
-        @keyframes blink { 0%,80%,100%{opacity:.2} 40%{opacity:1} }
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-      `}</style>
-
-      {/* ── TOP NAV ── */}
-      <div style={{ background: "#fff", borderBottom: "1px solid #e2e8f0", padding: "0 24px", height: 58, display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
-        <div style={{ width: 34, height: 34, borderRadius: 9, background: "linear-gradient(135deg,#2563eb,#4f46e5)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 17 }}>🩺</div>
-        <div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: "#0f172a", lineHeight: 1.2 }}>AI Medical Report Analysis</div>
-          <div style={{ fontSize: 12, color: "#94a3b8" }}>Upload reports · Get insights · Ask questions</div>
+      {/* Header */}
+      <div className="d-flex align-items-center gap-3 px-4 py-3 border-bottom bg-white flex-shrink-0">
+        <div
+          className="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
+          style={{ width: 38, height: 38 }}
+        >
+          <i className="bi bi-robot text-primary" />
         </div>
-        {response && (
-          <div style={{ marginLeft: "auto", background: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe", borderRadius: 20, padding: "4px 14px", fontSize: 12, fontWeight: 600 }}>
-            ✓ {response.report_type}
-          </div>
-        )}
+        <div>
+          <p className="fw-bold small mb-0">AI Medical Assistant</p>
+          <p className="text-muted mb-0" style={{ fontSize: "11px" }}>
+            Ask questions about your report
+          </p>
+        </div>
+        <div className="ms-auto d-flex align-items-center gap-2">
+          <span
+            className="rounded-circle bg-success d-inline-block"
+            style={{ width: 7, height: 7 }}
+          />
+          <span className="text-success small fw-semibold">Online</span>
+        </div>
       </div>
 
-      {/* ── MAIN BODY ── */}
-      <div style={{ flex: 1, display: "flex", overflow: "hidden", height: "calc(100vh - 58px)" }}>
-
-        {/* ── LEFT PANEL ── */}
-        <div style={{ width: response ? "40%" : "100%", minWidth: response ? 320 : undefined, transition: "width .3s ease", background: "#fff", borderRight: "1px solid #e2e8f0", display: "flex", flexDirection: "column", overflowY: "auto" }}>
-
-          {!response ? (
-            /* UPLOAD STATE */
-            <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 20 }}>
-              <label htmlFor="fileUpload" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", border: "2px dashed #bfdbfe", borderRadius: 16, padding: "40px 24px", textAlign: "center", cursor: "pointer", background: "#f8faff", minHeight: 190, transition: "border-color .2s" }}>
-                <div style={{ width: 60, height: 60, borderRadius: "50%", background: "linear-gradient(135deg,#ede9fe,#dbeafe)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, marginBottom: 12 }}>📤</div>
-                <p style={{ fontWeight: 600, color: "#1e40af", margin: "0 0 4px", fontSize: 14 }}>Drop files here or click to browse</p>
-                <p style={{ color: "#94a3b8", margin: 0, fontSize: 12 }}>PDF, JPG, JPEG, PNG · Max 10MB each</p>
-                <input id="fileUpload" type="file" hidden multiple accept=".pdf,.png,.jpg,.jpeg" onChange={handleFileChange} />
-              </label>
-
-              {selectedFiles.length > 0 && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.06em" }}>{selectedFiles.length} file{selectedFiles.length > 1 ? "s" : ""} selected</div>
-                  {selectedFiles.map((file, i) => (
-                    <div key={i} className="file-chip">
-                      <span style={{ fontSize: 20 }}>📄</span>
-                      <div style={{ flex: 1, overflow: "hidden" }}>
-                        <div style={{ fontSize: 13, fontWeight: 500, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{file.name}</div>
-                        <div style={{ fontSize: 11, color: "#94a3b8" }}>{(file.size / (1024 * 1024)).toFixed(2)} MB</div>
-                      </div>
-                      <button className="remove-btn" onClick={() => handleRemoveFile(i)}>✕</button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <button className="analyze-btn" onClick={handleSubmit} disabled={loading}>
-                {loading ? <><span style={{ display: "inline-block", width: 14, height: 14, border: "2px solid rgba(255,255,255,.4)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin .7s linear infinite", marginRight: 8, verticalAlign: "middle" }}></span>Analyzing...</> : "✨ Analyze Report"}
-              </button>
-              <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-                {[["🔒", "Private & Secure"], ["⚡", "AI-Powered"], ["💬", "Ask Questions"]].map(([icon, label]) => (
-                  <div key={label} style={{ textAlign: "center", padding: "10px 8px", background: "#f8faff", borderRadius: 10 }}>
-                    <div style={{ fontSize: 18 }}>{icon}</div>
-                    <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 3 }}>{label}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-          ) : (
-            /* RESULTS STATE */
-            <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
-              {/* re-upload strip */}
-              <div style={{ padding: "8px 16px", background: "#f8fafc", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", gap: 10 }}>
-                <label htmlFor="fileUpload2" style={{ background: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe", borderRadius: 20, padding: "4px 12px", fontSize: 12, fontWeight: 500, cursor: "pointer", flexShrink: 0 }}>
-                  + New Report
-                </label>
-                <input id="fileUpload2" type="file" hidden multiple accept=".pdf,.png,.jpg,.jpeg" onChange={handleFileChange} />
-                <span style={{ fontSize: 12, color: "#94a3b8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {selectedFiles.map((f) => f.name).join(", ")}
-                </span>
-              </div>
-
-              {/* tabs */}
-              <div style={{ display: "flex", borderBottom: "1px solid #e2e8f0", background: "#fff", overflowX: "auto", flexShrink: 0 }}>
-                {["summary", "abnormalities", "precautions"].map((tab) => (
-                  <button key={tab} className={`tab-btn${activeTab === tab ? " active" : ""}`} onClick={() => setActiveTab(tab)}>
-                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                    {tab === "abnormalities" && response?.abnormalities?.length > 0 && (
-                      <span style={{ marginLeft: 6, background: "#fee2e2", color: "#dc2626", borderRadius: 10, padding: "1px 7px", fontSize: 11, fontWeight: 600 }}>
-                        {response.abnormalities.length}
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-
-              {/* tab content */}
-              <div style={{ flex: 1, overflowY: "auto", padding: 16, display: "flex", flexDirection: "column", gap: 10 }}>
-
-                {activeTab === "summary" && (
-                  <>
-                    <div style={{ background: "#f0f9ff", border: "1px solid #bae6fd", borderRadius: 12, padding: 14 }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: "#0369a1", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 6 }}>Summary</div>
-                      <p style={{ fontSize: 13, lineHeight: 1.65, color: "#0c4a6e", margin: 0 }}>{response?.summary}</p>
-                    </div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 4 }}>
-                      <span style={{ background: "#1e293b", color: "#f8fafc", borderRadius: 20, padding: "5px 14px", fontSize: 12, fontWeight: 500 }}>
-                        🩺 {response?.recommended_specialist}
-                      </span>
-                      {response?.doctor_consultation_needed && (
-                        <span style={{ background: "#fee2e2", color: "#991b1b", borderRadius: 20, padding: "5px 14px", fontSize: 12, fontWeight: 500 }}>
-                          ⚠ Consultation Recommended
-                        </span>
-                      )}
-                    </div>
-                  </>
-                )}
-
-                {activeTab === "abnormalities" && (
-                  response?.abnormalities?.length === 0
-                    ? <div style={{ textAlign: "center", padding: "40px 0", color: "#94a3b8", fontSize: 14 }}>No abnormalities detected ✅</div>
-                    : response?.abnormalities?.map((abn, i) => {
-                        const c = statusColor(abn.status);
-                        return (
-                          <div key={i} style={{ border: "1px solid #fecaca", borderRadius: 12, padding: 14, background: "#fff" }}>
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
-                              <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a" }}>{abn.test}</span>
-                              <span style={{ background: c.bg, color: c.text, borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: 600, flexShrink: 0, marginLeft: 8 }}>{abn.status}</span>
-                            </div>
-                            <div style={{ display: "flex", gap: 16, fontSize: 12, marginBottom: 6 }}>
-                              <span style={{ color: "#64748b" }}>Value: <strong style={{ color: "#dc2626" }}>{abn.value}</strong></span>
-                              <span style={{ color: "#94a3b8" }}>Ref: {abn.reference_range}</span>
-                            </div>
-                            <p style={{ fontSize: 12, color: "#64748b", margin: 0 }}>{abn.reason}</p>
-                          </div>
-                        );
-                      })
-                )}
-
-                {activeTab === "precautions" && (
-                  response?.precautions?.map((item, i) => (
-                    <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 10, background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 12, padding: 12 }}>
-                      <span style={{ color: "#16a34a", fontSize: 15, marginTop: 1, flexShrink: 0 }}>✓</span>
-                      <p style={{ fontSize: 13, color: "#14532d", margin: 0, lineHeight: 1.55 }}>{item}</p>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* ── RIGHT PANEL — chat ── */}
-        {response && (
-  token ? (
-    <div
-      style={{
-        flex: 1,
-        display: "flex",
-        flexDirection: "column",
-        background: "#f8fafc",
-        minWidth: 0,
-      }}
-    >
-
-            {/* chat header */}
-            <div style={{ background: "#fff", borderBottom: "1px solid #e2e8f0", padding: "12px 20px", display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
-              <div style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg,#2563eb,#4f46e5)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, flexShrink: 0 }}>🤖</div>
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: "#0f172a" }}>AI Medical Assistant</div>
-                <div style={{ fontSize: 12, color: "#94a3b8" }}>Ask questions about your report</div>
-              </div>
-              <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 5, fontSize: 12, color: "#16a34a" }}>
-                <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#16a34a", display: "inline-block" }}></span>
-                Online
-              </div>
-            </div>
-
-            {/* messages */}
-            <div style={{ flex: 1, overflowY: "auto", padding: "16px", display: "flex", flexDirection: "column", gap: 12 }}>
-              {messages.map((msg, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start", alignItems: "flex-end", gap: 8 }}>
-                  {msg.role === "assistant" && (
-                    <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#ede9fe", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, flexShrink: 0 }}>🤖</div>
-                  )}
-                  <div style={{
-                    maxWidth: "75%",
-                    padding: "10px 14px",
-                    borderRadius: msg.role === "user" ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
-                    fontSize: 13,
-                    lineHeight: 1.6,
-                    background: msg.role === "user" ? "linear-gradient(135deg,#2563eb,#4f46e5)" : "#fff",
-                    color: msg.role === "user" ? "#fff" : "#1e293b",
-                    border: msg.role === "assistant" ? "1px solid #e2e8f0" : "none",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-                  }}>
-                    {/* fix: render markdown instead of raw text */}
-                    {msg.role === "assistant"
-                      ? <div className="chat-msg-md"><ReactMarkdown>{msg.content}</ReactMarkdown></div>
-                      : msg.content
-                    }
-                  </div>
-                </div>
-              ))}
-
-              {/* typing indicator */}
-              {chatLoading && (
-                <div style={{ display: "flex", alignItems: "flex-end", gap: 8 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: "50%", background: "#ede9fe", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, flexShrink: 0 }}>🤖</div>
-                  <div style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: "18px 18px 18px 4px", padding: "12px 16px", display: "flex", gap: 5, alignItems: "center" }}>
-                    <div className="typing-dot"></div>
-                    <div className="typing-dot"></div>
-                    <div className="typing-dot"></div>
-                  </div>
-                </div>
-              )}
-
-              <div ref={chatBottomRef} />
-            </div>
-
-            {/* quick prompts — fix: pass q directly, no setTimeout race */}
-            {messages.filter((m) => m.role === "user").length === 0 && (
-              <div style={{ padding: "0 16px 10px", display: "flex", flexWrap: "wrap", gap: 7 }}>
-                {["What are the key findings?", "What should I do next?", "Explain the abnormalities", "Is this serious?"].map((q) => (
-                  <button key={q} className="quick-chip" onClick={() => handleSendMessage(q)}>{q}</button>
-                ))}
+      {/* Messages */}
+      <div
+        className="flex-grow-1 overflow-y-auto p-3 d-flex flex-column gap-3"
+        style={{ background: "#f8fafc" }}
+      >
+        {messages.map((msg, i) => (
+          <div
+            key={i}
+            className={`d-flex align-items-end gap-2 ${msg.role === "user" ? "justify-content-end" : "justify-content-start"}`}
+          >
+            {msg.role === "assistant" && (
+              <div
+                className="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
+                style={{ width: 28, height: 28 }}
+              >
+                <i className="bi bi-robot text-primary small" />
               </div>
             )}
-
-            {/* input */}
-            <div style={{ background: "#fff", borderTop: "1px solid #e2e8f0", padding: "12px 16px" }}>
-              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                <input
-                  type="text"
-                  placeholder="Ask about your report..."
-                  value={question}
-                  onChange={(e) => setQuestion(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  style={{ flex: 1, padding: "10px 18px", borderRadius: 24, border: "1.5px solid #e2e8f0", fontSize: 13, fontFamily: "inherit", outline: "none", background: "#f8fafc", color: "#0f172a" }}
-                />
-                <button className="send-btn" onClick={() => handleSendMessage()} disabled={chatLoading || !question.trim()}>
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                </button>
-              </div>
-              <p style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", margin: "8px 0 0" }}>
-                AI responses are informational only — not a substitute for professional medical advice.
-              </p>
-            </div>
-                   </div>
-      ) : (
-        <div
-          style={{
-            flex: 1,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "#f8fafc",
-            padding: "30px",
-          }}
-        >
-          <div
-            style={{
-              background: "#fff",
-              border: "1px solid #e2e8f0",
-              borderRadius: "20px",
-              padding: "40px 30px",
-              textAlign: "center",
-              maxWidth: "420px",
-              width: "100%",
-              boxShadow: "0 10px 25px rgba(0,0,0,0.06)",
-            }}
-          >
             <div
+              className="px-3 py-2 small"
               style={{
-                width: "70px",
-                height: "70px",
-                borderRadius: "50%",
-                background: "linear-gradient(135deg,#2563eb,#4f46e5)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                margin: "0 auto 18px",
-                fontSize: "30px",
+                maxWidth: "75%",
+                borderRadius:
+                  msg.role === "user"
+                    ? "18px 18px 4px 18px"
+                    : "18px 18px 18px 4px",
+                background: msg.role === "user" ? "#0d6efd" : "#fff",
+                color: msg.role === "user" ? "#fff" : "#1e293b",
+                border: msg.role === "assistant" ? "1px solid #e2e8f0" : "none",
+                lineHeight: 1.6,
               }}
             >
-              🔐
+              {msg.role === "assistant" ? (
+                <ReactMarkdown>{msg.content}</ReactMarkdown>
+              ) : (
+                msg.content
+              )}
             </div>
+          </div>
+        ))}
 
-            <h2
-              style={{
-                fontSize: "22px",
-                fontWeight: "700",
-                color: "#0f172a",
-                marginBottom: "10px",
-              }}
+        {chatLoading && (
+          <div className="d-flex align-items-end gap-2">
+            <div
+              className="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
+              style={{ width: 28, height: 28 }}
             >
-              Login Required
-            </h2>
+              <i className="bi bi-robot text-primary small" />
+            </div>
+            <div className="bg-white border rounded-pill px-3 py-2 d-flex gap-2 align-items-center">
+              {[0, 1, 2].map((d) => (
+                <span
+                  key={d}
+                  className="rounded-circle bg-secondary d-inline-block"
+                  style={{
+                    width: 6,
+                    height: 6,
+                    opacity: 0.4,
+                    animation: `pulse 1.2s ${d * 0.2}s infinite`,
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+        <div ref={chatBottomRef} />
+      </div>
 
-            <p
-              style={{
-                fontSize: "14px",
-                color: "#64748b",
-                lineHeight: "1.7",
-                marginBottom: "24px",
-              }}
-            >
-              Please login to chat with your AI medical assistant
-              and ask questions about your uploaded report.
-            </p>
-
+      {/* Quick prompts */}
+      {messages.filter((m) => m.role === "user").length === 0 && (
+        <div className="px-3 py-2 border-top bg-white d-flex flex-wrap gap-2 flex-shrink-0">
+          {quickPrompts.map((q) => (
             <button
-              onClick={() => navigate("/login")}
+              key={q}
+              className="btn btn-sm rounded-pill border px-3 py-1 small"
               style={{
-                background: "linear-gradient(135deg,#2563eb,#4f46e5)",
-                color: "#fff",
-                border: "none",
-                borderRadius: "12px",
-                padding: "12px 22px",
-                fontSize: "14px",
-                fontWeight: "600",
-                cursor: "pointer",
-                width: "100%",
+                background: "#eff6ff",
+                color: "#1d4ed8",
+                borderColor: "#bfdbfe",
               }}
+              onClick={() => sendMessage(q)}
             >
-              Login to Continue
+              {q}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Input */}
+      <div className="px-3 py-3 border-top bg-white flex-shrink-0">
+        {!token ? (
+          <button
+            className="btn btn-primary w-100 rounded-3 fw-semibold"
+            onClick={() => navigate("/login")}
+          >
+            <i className="bi bi-lock me-2" />
+            Login to chat
+          </button>
+        ) : (
+          <div className="d-flex gap-2 align-items-center">
+            <input
+              type="text"
+              className="form-control rounded-pill border"
+              placeholder="Ask about your report..."
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+              style={{ background: "#f8fafc" }}
+            />
+            <button
+              className="btn btn-primary rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+              style={{ width: 42, height: 42 }}
+              onClick={() => sendMessage()}
+              disabled={chatLoading || !question.trim()}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <line x1="22" y1="2" x2="11" y2="13" />
+                <polygon points="22 2 15 22 11 13 2 9 22 2" />
+              </svg>
             </button>
           </div>
+        )}
+        <p
+          className="text-muted text-center mb-0 mt-2"
+          style={{ fontSize: "11px" }}
+        >
+          AI responses are informational only — not a substitute for
+          professional medical advice.
+        </p>
+      </div>
+
+      <style>{`
+        @keyframes pulse { 0%,80%,100%{opacity:.2} 40%{opacity:1} }
+        .overflow-y-auto { overflow-y: auto; }
+        .overflow-y-auto::-webkit-scrollbar { width: 4px; }
+        .overflow-y-auto::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+      `}</style>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN COMPONENT
+// ─────────────────────────────────────────────────────────────────────────────
+const AiReportAnalysis = ({ mode = "upload" }) => {
+  // mode = "upload" | "history" | "view"
+  const { token, backEndUrl } = useContext(AppContext);
+  const navigate = useNavigate();
+  const { id: reportIdParam } = useParams();
+
+  // Upload + analysis state
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [analysisResult, setAnalysisResult] = useState(null);
+  const [reportId, setReportId] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  // For view mode — loading stored report
+  const [storedReport, setStoredReport] = useState(null);
+  const [storedLoading, setStoredLoading] = useState(false);
+
+  // Active section tab ("upload" | "history" | "view")
+  const [activeSection, setActiveSection] = useState(mode);
+
+  useEffect(() => {
+    setActiveSection(mode);
+  }, [mode]);
+
+  // Load stored report when in view mode
+  useEffect(() => {
+    if (mode === "view" && reportIdParam && token) {
+      setStoredLoading(true);
+      axios
+        .get(`${backEndUrl}/api/user/report/${reportIdParam}`, {
+          headers: { usertoken: token },
+        })
+        .then(({ data }) => {
+          if (data.success) {
+            setStoredReport(data.report);
+            setReportId(data.report._id);
+            setAnalysisResult(data.report.aiAnalysis);
+          }
+        })
+        .catch(() => {})
+        .finally(() => setStoredLoading(false));
+    }
+  }, [mode, reportIdParam, token]);
+
+  // File handlers
+  const handleFileChange = (e) => {
+    const files = Array.from(e.target.files);
+    const allowed = ["application/pdf", "image/png", "image/jpeg", "image/jpg"];
+    const valid = files.filter((f) => {
+      if (!allowed.includes(f.type)) {
+        alert(`${f.name} is not supported`);
+        return false;
+      }
+      if (f.size > 10 * 1024 * 1024) {
+        alert(`${f.name} exceeds 10MB`);
+        return false;
+      }
+      return true;
+    });
+    setSelectedFiles(valid);
+    setAnalysisResult(null);
+  };
+
+  const removeFile = (i) =>
+    setSelectedFiles((prev) => prev.filter((_, idx) => idx !== i));
+
+  const handleAnalyze = async () => {
+    if (selectedFiles.length === 0) return alert("Please select a report file");
+    try {
+      setLoading(true);
+      const formData = new FormData();
+      selectedFiles.forEach((f) => formData.append("reports", f));
+      const { data } = await axios.post(
+        `${backEndUrl}/api/user/ai-report-analysis`,
+        formData,
+        { headers: { usertoken: token } },
+      );
+      if (data.success) {
+        setAnalysisResult(data.data);
+        setReportId(data.reportId);
+      }
+    } catch (err) {
+      alert("Analysis failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetUpload = () => {
+    setSelectedFiles([]);
+    setAnalysisResult(null);
+    setReportId(null);
+  };
+
+  // ── RENDER ────────────────────────────────────────────────────────────────
+  return (
+    <div className="bg-light min-vh-100 py-5">
+      <div className="container" style={{ maxWidth: "960px" }}>
+        {/* ── Page Header ───────────────────────────────────────── */}
+        <div className="d-flex flex-column flex-sm-row justify-content-between align-items-sm-start mb-4 gap-3">
+          <div>
+            <p className="text-primary fw-semibold small text-uppercase mb-1">
+              <i className="bi bi-robot me-1" />
+              AI Analysis
+            </p>
+            <h4 className="fw-bold mb-0">Medical Report Analysis</h4>
+            <p className="text-muted small mt-1">
+              Upload reports, get insights, ask questions
+            </p>
+          </div>
         </div>
-      )
-)}
+
+        {/* ── Section Tabs ──────────────────────────────────────── */}
+        <div className="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+          <div className="d-flex border-bottom bg-white">
+            {[
+              { key: "upload", label: "New Analysis", icon: "bi-upload" },
+              {
+                key: "history",
+                label: "Past Reports",
+                icon: "bi-clock-history",
+              },
+            ].map(({ key, label, icon }) => (
+              <button
+                key={key}
+                className="btn btn-link text-decoration-none px-4 py-3 rounded-0 border-0 fw-semibold small d-flex align-items-center gap-2"
+                style={{
+                  color:
+                    activeSection === key ||
+                    (activeSection === "view" && key === "history")
+                      ? "#0d6efd"
+                      : "#6c757d",
+                  borderBottom:
+                    activeSection === key ||
+                    (activeSection === "view" && key === "history")
+                      ? "2px solid #0d6efd"
+                      : "2px solid transparent",
+                }}
+                onClick={() => {
+                  if (key === "upload") {
+                    navigate("/ai-report");
+                    setActiveSection("upload");
+                    resetUpload();
+                  }
+                  if (key === "history") {
+                    navigate("/report-history");
+                    setActiveSection("history");
+                  }
+                }}
+              >
+                <i className={`bi ${icon}`} />
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ── SECTION: HISTORY ──────────────────────────────────── */}
+        {activeSection === "history" && (
+          <HistoryView
+            backEndUrl={backEndUrl}
+            token={token}
+            navigate={navigate}
+          />
+        )}
+
+        {/* ── SECTION: VIEW STORED REPORT ───────────────────────── */}
+        {activeSection === "view" &&
+          (storedLoading ? (
+            <div className="text-center py-5">
+              <div
+                className="spinner-border text-primary"
+                role="status"
+                style={{ width: "3rem", height: "3rem" }}
+              >
+                <span className="visually-hidden">Loading...</span>
+              </div>
+              <p className="text-muted mt-3">Loading report...</p>
+            </div>
+          ) : storedReport ? (
+            <div>
+              {/* Back + meta */}
+              <div className="d-flex align-items-center gap-3 mb-4 flex-wrap">
+                <button
+                  className="btn btn-link text-muted p-0 text-decoration-none small"
+                  onClick={() => navigate("/report-history")}
+                >
+                  <i className="bi bi-arrow-left me-1" />
+                  Back to history
+                </button>
+                <span className="text-muted small ms-auto">
+                  <i className="bi bi-calendar3 me-1" />
+                  {new Date(storedReport.createdAt).toLocaleDateString(
+                    "en-IN",
+                    { day: "2-digit", month: "short", year: "numeric" },
+                  )}
+                </span>
+                {storedReport.reportType && (
+                  <span className="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3">
+                    {storedReport.reportType}
+                  </span>
+                )}
+                {storedReport.aiAnalysis?.doctor_consultation_needed && (
+                  <span className="badge bg-danger-subtle text-danger rounded-pill px-3">
+                    <i className="bi bi-exclamation-circle me-1" />
+                    Consultation Needed
+                  </span>
+                )}
+              </div>
+
+              <div className="row g-4">
+                <div className="col-12 col-lg-6">
+                  <AnalysisPanel ai={storedReport.aiAnalysis} />
+                </div>
+                <div className="col-12 col-lg-6">
+                  <ChatPanel
+                    backEndUrl={backEndUrl}
+                    token={token}
+                    reportId={reportId}
+                    reportSummary={storedReport.aiAnalysis}
+                    navigate={navigate}
+                  />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-5">
+              <i
+                className="bi bi-file-earmark-x text-muted"
+                style={{ fontSize: "3rem" }}
+              />
+              <p className="text-muted mt-3 fw-medium">Report not found</p>
+              <button
+                className="btn btn-outline-primary rounded-3"
+                onClick={() => navigate("/report-history")}
+              >
+                Back to History
+              </button>
+            </div>
+          ))}
+
+        {/* ── SECTION: UPLOAD / NEW ANALYSIS ────────────────────── */}
+        {activeSection === "upload" &&
+          (!analysisResult ? (
+            /* Upload UI */
+            <div className="row justify-content-center">
+              <div className="col-12 col-md-8">
+                <div className="card border-0 shadow-sm rounded-4 overflow-hidden">
+                  <div className="bg-primary" style={{ height: "4px" }} />
+                  <div className="card-body p-4">
+                    <h6
+                      className="fw-bold text-uppercase text-muted small mb-3"
+                      style={{ letterSpacing: "1px" }}
+                    >
+                      <i className="bi bi-cloud-arrow-up me-2 text-primary" />
+                      Upload Report
+                    </h6>
+
+                    {/* Drop zone */}
+                    <label
+                      htmlFor="aiReportUpload"
+                      className="d-flex flex-column align-items-center justify-content-center rounded-4 mb-3"
+                      style={{
+                        border: "2px dashed #bfdbfe",
+                        background: "#f8faff",
+                        minHeight: 180,
+                        cursor: "pointer",
+                        padding: "32px 24px",
+                        textAlign: "center",
+                      }}
+                    >
+                      <div
+                        className="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center mb-3"
+                        style={{ width: 60, height: 60 }}
+                      >
+                        <i
+                          className="bi bi-file-earmark-arrow-up text-primary"
+                          style={{ fontSize: "1.6rem" }}
+                        />
+                      </div>
+                      <p className="fw-semibold text-primary mb-1 small">
+                        Click to browse or drag & drop
+                      </p>
+                      <p className="text-muted mb-0 small">
+                        PDF, JPG, JPEG, PNG · Max 10MB each
+                      </p>
+                      <input
+                        id="aiReportUpload"
+                        type="file"
+                        hidden
+                        multiple
+                        accept=".pdf,.png,.jpg,.jpeg"
+                        onChange={handleFileChange}
+                      />
+                    </label>
+
+                    {/* Selected files */}
+                    {selectedFiles.length > 0 && (
+                      <div className="d-flex flex-column gap-2 mb-3">
+                        {selectedFiles.map((file, i) => (
+                          <div
+                            key={i}
+                            className="d-flex align-items-center gap-3 bg-light border rounded-3 p-3"
+                          >
+                            <div
+                              className="rounded-3 bg-primary bg-opacity-10 d-flex align-items-center justify-content-center flex-shrink-0"
+                              style={{ width: 40, height: 40 }}
+                            >
+                              <i className="bi bi-file-earmark-text text-primary" />
+                            </div>
+                            <div className="flex-grow-1 overflow-hidden">
+                              <p className="fw-semibold small mb-0 text-truncate">
+                                {file.name}
+                              </p>
+                              <p className="text-muted small mb-0">
+                                {(file.size / (1024 * 1024)).toFixed(2)} MB
+                              </p>
+                            </div>
+                            <button
+                              className="btn btn-sm btn-outline-danger rounded-3"
+                              onClick={() => removeFile(i)}
+                            >
+                              <i className="bi bi-trash" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    <button
+                      className="btn btn-primary w-100 fw-semibold rounded-3 py-2"
+                      onClick={handleAnalyze}
+                      disabled={loading || selectedFiles.length === 0}
+                    >
+                      {loading ? (
+                        <>
+                          <span
+                            className="spinner-border spinner-border-sm me-2"
+                            role="status"
+                          />
+                          Analysing...
+                        </>
+                      ) : (
+                        <>
+                          <i className="bi bi-stars me-2" />
+                          Analyse Report
+                        </>
+                      )}
+                    </button>
+
+                    {/* Trust badges */}
+                    <div className="row g-2 mt-3">
+                      {[
+                        { icon: "bi-lock", label: "Private & Secure" },
+                        { icon: "bi-lightning", label: "AI-Powered" },
+                        { icon: "bi-chat-dots", label: "Ask Questions" },
+                      ].map(({ icon, label }) => (
+                        <div key={label} className="col-4">
+                          <div className="text-center p-2 bg-light rounded-3">
+                            <i className={`bi ${icon} text-primary`} />
+                            <p
+                              className="text-muted mb-0 mt-1"
+                              style={{ fontSize: "11px" }}
+                            >
+                              {label}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* Analysis + Chat UI */
+            <div>
+              {/* Analysed file + reset */}
+              <div className="d-flex align-items-center gap-3 mb-4 flex-wrap">
+                <div className="d-flex align-items-center gap-2">
+                  <i className="bi bi-check-circle-fill text-success" />
+                  <span className="fw-semibold small">
+                    {selectedFiles.map((f) => f.name).join(", ")}
+                  </span>
+                </div>
+                <button
+                  className="btn btn-sm btn-outline-secondary rounded-3 ms-auto"
+                  onClick={resetUpload}
+                >
+                  <i className="bi bi-arrow-left me-1" />
+                  Analyse another report
+                </button>
+              </div>
+
+              {/* Consultation alert */}
+              {analysisResult?.doctor_consultation_needed && (
+                <div
+                  className="alert rounded-4 border-0 mb-4 d-flex align-items-center gap-3"
+                  style={{
+                    background: "#fef2f2",
+                    borderLeft: "4px solid #dc2626",
+                  }}
+                >
+                  <i className="bi bi-exclamation-triangle-fill text-danger fs-5 flex-shrink-0" />
+                  <div>
+                    <p className="fw-bold mb-0 small text-danger">
+                      Doctor Consultation Recommended
+                    </p>
+                    <p className="text-muted small mb-0">
+                      This report contains findings that may require
+                      professional medical attention.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div className="row g-4">
+                <div className="col-12 col-lg-6">
+                  <AnalysisPanel ai={analysisResult} />
+                </div>
+                <div className="col-12 col-lg-6">
+                  <ChatPanel
+                    backEndUrl={backEndUrl}
+                    token={token}
+                    reportId={reportId}
+                    reportSummary={analysisResult}
+                    navigate={navigate}
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
       </div>
     </div>
   );

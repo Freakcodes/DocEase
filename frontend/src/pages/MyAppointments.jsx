@@ -18,12 +18,11 @@ const MyAppointments = () => {
   const getAppointedDoctors = async () => {
     const { data } = await axios.get(
       backEndUrl + "/api/user/list-appointments",
-      { headers: { usertoken: token } }
+      { headers: { usertoken: token } },
     );
     if (data.success) {
       setAppointments(data.appointments.reverse());
       console.log(data.appointments);
-      
     } else {
       toast.error(data.message);
     }
@@ -41,11 +40,11 @@ const MyAppointments = () => {
       handler: async (response) => {
         try {
           console.log(response);
-          
+
           const { data } = await axios.post(
             backEndUrl + "/api/user/verifyRazorpay",
             response,
-            { headers: { usertoken: token } }
+            { headers: { usertoken: token } },
           );
           if (data.success) {
             getAppointedDoctors();
@@ -65,7 +64,7 @@ const MyAppointments = () => {
       const { data } = await axios.post(
         backEndUrl + "/api/user/payment-razorpay",
         { appointmentId: appointment._id },
-        { headers: { usertoken: token } }
+        { headers: { usertoken: token } },
       );
       if (data.success) initPay(data.order);
       else toast.error(data.message);
@@ -80,7 +79,7 @@ const MyAppointments = () => {
       const { data } = await axios.post(
         backEndUrl + "/api/user/cancel-appointments",
         { appointmentId: appointment._id },
-        { headers: { usertoken: token } }
+        { headers: { usertoken: token } },
       );
       if (data.success) {
         toast.success("Appointment Cancelled");
@@ -95,17 +94,17 @@ const MyAppointments = () => {
     }
   };
 
-  useEffect(() => { getAppointedDoctors(); }, [token]);
+  useEffect(() => {
+    getAppointedDoctors();
+  }, [token]);
 
   const active = appointments.filter((a) => !a.cancelled);
 
   return (
     <div className="bg-light min-vh-100 py-5">
       <div className="container" style={{ maxWidth: "1170px" }}>
-
         {/* ── Page Header ───────────────────────────────────────── */}
         <div className="mb-5">
-          
           <h4 className="fw-bold mb-0">My Appointments</h4>
           <p className="text-muted small mt-1">
             {active.length} active appointment{active.length !== 1 ? "s" : ""}
@@ -117,7 +116,10 @@ const MyAppointments = () => {
           <Shimmer />
         ) : active.length === 0 ? (
           <div className="text-center py-5">
-            <i className="bi bi-calendar-x text-muted" style={{ fontSize: "3rem" }}></i>
+            <i
+              className="bi bi-calendar-x text-muted"
+              style={{ fontSize: "3rem" }}
+            ></i>
             <p className="text-muted mt-3 fw-medium">No appointments found</p>
           </div>
         ) : (
@@ -140,14 +142,17 @@ const MyAppointments = () => {
 
                   <div className="card-body p-4">
                     <div className="row g-3 align-items-center">
-
                       {/* ── Doctor Photo ── */}
                       <div className="col-auto">
                         <img
                           src={doc.image}
                           alt={doc.name}
                           className="rounded-3"
-                          style={{ width: "72px", height: "80px", objectFit: "cover" }}
+                          style={{
+                            width: "72px",
+                            height: "80px",
+                            objectFit: "cover",
+                          }}
                         />
                       </div>
 
@@ -157,7 +162,8 @@ const MyAppointments = () => {
                           <h6 className="fw-bold mb-0">{doc.name}</h6>
                           {isDone && (
                             <span className="badge bg-success-subtle text-success rounded-pill px-2 py-1 small">
-                              <i className="bi bi-check-circle me-1"></i>Completed
+                              <i className="bi bi-check-circle me-1"></i>
+                              Completed
                             </span>
                           )}
                           {!isDone && (
@@ -167,7 +173,9 @@ const MyAppointments = () => {
                           )}
                         </div>
 
-                        <p className="text-muted small mb-2">{doc.speciality}</p>
+                        <p className="text-muted small mb-2">
+                          {doc.speciality}
+                        </p>
 
                         <div className="d-flex flex-wrap gap-3 small text-secondary">
                           <span>
@@ -205,21 +213,28 @@ const MyAppointments = () => {
                         {isPaid && isDone && (
                           <button
                             className="btn btn-sm btn-outline-primary rounded-3 px-3 fw-semibold"
-                            onClick={() => navigate(`/my-appointments/${appointment._id}`)}
+                            onClick={() =>
+                              navigate(`/my-appointments/${appointment._id}`)
+                            }
                           >
-                            <i className="bi bi-file-earmark-text me-1"></i>View Report
+                            <i className="bi bi-file-earmark-text me-1"></i>View
+                            Report
                           </button>
                         )}
 
                         {/* Cancel */}
-                        <button
-                          className="btn btn-sm btn-outline-danger rounded-3 px-3 fw-semibold"
-                          onClick={() => { setShowModal(true); setSelectedAppointment(appointment); }}
-                        >
-                          <i className="bi bi-x-circle me-1"></i>Cancel
-                        </button>
+                        {isPaid && !isDone && (
+                          <button
+                            className="btn btn-sm btn-outline-danger rounded-3 px-3 fw-semibold"
+                            onClick={() => {
+                              setShowModal(true);
+                              setSelectedAppointment(appointment);
+                            }}
+                          >
+                            <i className="bi bi-x-circle me-1"></i>Cancel
+                          </button>
+                        )}
                       </div>
-
                     </div>
                   </div>
                 </div>
@@ -251,7 +266,9 @@ const MyAppointments = () => {
               </div>
               <div>
                 <h6 className="fw-bold mb-0">Cancel Appointment</h6>
-                <p className="text-muted small mb-0">This action cannot be undone</p>
+                <p className="text-muted small mb-0">
+                  This action cannot be undone
+                </p>
               </div>
             </div>
 
@@ -266,15 +283,19 @@ const MyAppointments = () => {
                 style={{ width: "44px", height: "44px", objectFit: "cover" }}
               />
               <div>
-                <p className="fw-bold mb-0 small">{selectedAppointment?.docData?.name}</p>
+                <p className="fw-bold mb-0 small">
+                  {selectedAppointment?.docData?.name}
+                </p>
                 <p className="text-muted mb-0 small">
-                  {selectedAppointment?.slotDate} &bull; {selectedAppointment?.slotTime}
+                  {selectedAppointment?.slotDate} &bull;{" "}
+                  {selectedAppointment?.slotTime}
                 </p>
               </div>
             </div>
 
             <p className="text-secondary small mb-4">
-              Are you sure you want to cancel this appointment? The slot will be released and you may need to rebook.
+              Are you sure you want to cancel this appointment? The slot will be
+              released and you may need to rebook.
             </p>
 
             <div className="d-flex gap-2">
@@ -283,10 +304,14 @@ const MyAppointments = () => {
                 onClick={() => handleCancelAppointment(selectedAppointment)}
                 disabled={!!cancellingId}
               >
-                {cancellingId
-                  ? <><span className="spinner-border spinner-border-sm me-2"></span>Cancelling...</>
-                  : "Yes, Cancel Appointment"
-                }
+                {cancellingId ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-2"></span>
+                    Cancelling...
+                  </>
+                ) : (
+                  "Yes, Cancel Appointment"
+                )}
               </button>
               <button
                 className="btn btn-outline-secondary px-4 fw-semibold"
