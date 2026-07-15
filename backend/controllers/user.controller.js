@@ -1,5 +1,4 @@
 import userModel from "../models/user.model.js";
-
 import validator from "validator";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -8,22 +7,15 @@ import doctorModel from "../models/doctor.model.js";
 import appointmentModel from "../models/appointment.model.js";
 import razorpay from "razorpay";
 import crypto from "crypto";
-// import { log } from "console";
 import sendEmail from "../utils/sendEmail.js";
 import { GoogleGenAI } from "@google/genai";
 import fs from "fs";
-// import pdfParse from "pdf-parse";
+
 import { PDFParse } from "pdf-parse";
 import reportModel from "../models/report.model.js";
 import { pineconeIndex } from "../config/pinecone.js";
 import { pipeline } from "@xenova/transformers";
 import { log } from "console";
-
-// import { embed } from "@pinecone-database/pinecone/dist/inference/embed.js";
-// import pdfParse from "pdf-parse"
-// import { CombineIcon } from "lucide-react";
-
-// import doctorModel from "../models/doctor.model.js";
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY,
@@ -64,10 +56,7 @@ const registerUser = async (req, res) => {
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
 
-   
-    
-
-    return res.json({ success: true, token, user});
+    return res.json({ success: true, token, user });
   } catch (error) {
     console.error(error);
     return res.json({ success: false, message: "Something went wrong" });
@@ -178,9 +167,17 @@ const bookAppointment = async (req, res) => {
     await newAppointment.save();
 
     // save new slots data in docData
-
+    const paymentLink = process.env.FRONTEND_URL + "/appointments";
     await doctorModel.findByIdAndUpdate(docId, { slots_booked });
-
+    await sendEmail(userData.email, "appointmentConfirmed", {
+      patientName: userData.name,
+      doctorName: docData.name,
+      doctorSpeciality: docData.speciality,
+      slotDate: slotDate,
+      slotTime: slotTime,
+      fees: docData.fees,
+      paymentLink,
+    });
     res.json({ success: true, message: "Appointment Booked" });
 
     //checking for slot availability
@@ -285,59 +282,113 @@ const razorpayInstance = new razorpay({
 const paymentRazorpay = async (req, res) => {
   try {
     const { appointmentId } = req.body;
-
+ 
+    // Validate appointment exists and is not cancelled
     const appointmentData = await appointmentModel.findById(appointmentId);
-
-    if (!appointmentData || appointmentData.cancelled) {
-      return res.json({
-        success: false,
-        message: "Appointment Cancelled or Not Found",
-      });
+ 
+    if (!appointmentData) {
+      return res.json({ success: false, message: "Appointment not found" });
     }
-    //creating options for razorpay payment
+ 
+    if (appointmentData.cancelled) {
+      return res.json({ success: false, message: "Appointment has been cancelled" });
+    }
+ 
+    if (appointmentData.payment) {
+      return res.json({ success: false, message: "Payment already completed for this appointment" });
+    }
+ 
+    // Create Razorpay order
     const options = {
-      amount: appointmentData.amount * 100,
-      currency: process.env.CURRENCY,
+      amount: appointmentData.amount * 100, // convert to paise
+      currency: process.env.CURRENCY || "INR",
       receipt: appointmentId,
     };
-    // console.log(options);
-    //creation of an order
-    console.log("before the payment all good");
-
-    try {
-      const order = await razorpayInstance.orders.create(options);
-      console.log("I am here");
-      console.log("Order created:", order);
-      return res.json({ success: true, order });
-    } catch (error) {
-      return res.json({
-        success: false,
-        message: error.code,
-      });
-      console.log("Razorpay Error:", error); // This will show the REAL error
-    }
+ 
+    const order = await razorpayInstance.orders.create(options);
+ 
+    return res.json({ success: true, order });
+ 
   } catch (error) {
+    console.error("Razorpay order creation error:", error);
+ 
+    // Send the actual Razorpay error message — not the whole object
     return res.json({
       success: false,
-      message: error,
+      message: error?.error?.description || error?.message || "Failed to create payment order",
     });
   }
 };
-
+ 
+// ── 2. Verify Payment + Send Email ───────────────────────────────────────────
 const verifyRazorPay = async (req, res) => {
   try {
-    const { razorpay_order_id } = req.body;
-    const orderInfo = await razorpayInstance.orders.fetch(razorpay_order_id);
-    if (orderInfo.status === "paid") {
-      await appointmentModel.findByIdAndUpdate(orderInfo.receipt, {
-        payment: true,
-      });
-      res.json({ success: true, message: "Payment Successfull" });
+    const {
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+    } = req.body;
+ 
+    // Step 1: Verify signature to confirm payment is genuine
+    const generatedSignature = crypto
+      .createHmac("sha256", process.env.RAZORPAY_SECRET_KEY)
+      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+      .digest("hex");
+ 
+    if (generatedSignature !== razorpay_signature) {
+      return res.json({ success: false, message: "Payment verification failed. Invalid signature." });
     }
+ 
+    // Step 2: Find appointment using the order receipt (which is appointmentId)
+    const appointmentData = await appointmentModel.findOneAndUpdate(
+      { _id: razorpay_order_id.receipt || req.body.appointmentId }, // fallback
+      { payment: true },
+      { new: true }
+    );
+ 
+    // Better approach — fetch order from Razorpay to get the receipt (appointmentId)
+    const order = await razorpayInstance.orders.fetch(razorpay_order_id);
+    const appointmentId = order.receipt;
+ 
+    const appointment = await appointmentModel.findByIdAndUpdate(
+      appointmentId,
+      { payment: true },
+      { new: true }
+    );
+ 
+    if (!appointment) {
+      return res.json({ success: false, message: "Appointment not found" });
+    }
+ 
+    // Step 3: Fetch patient details for email
+    const user = await userModel.findById(appointment.userId);
+ 
+    // Step 4: Send payment success email with calendar options
+    if (user?.email) {
+      try {
+        await sendEmail(user.email, "paymentSuccess", {
+          patientName: user.name,
+          doctorName: appointment.docData?.name || "the doctor",
+          doctorSpeciality: appointment.docData?.speciality || "",
+          slotDate: appointment.slotDate,
+          slotTime: appointment.slotTime,
+          fees: appointment.amount,
+          appointmentId: appointment._id,
+          transactionId: razorpay_payment_id,
+        });
+      } catch (emailError) {
+        // Don't fail the whole request if email fails — just log it
+        console.error("Failed to send payment confirmation email:", emailError.message);
+      }
+    }
+ 
+    return res.json({ success: true, message: "Payment verified successfully" });
+ 
   } catch (error) {
+    console.error("Payment verification error:", error);
     return res.json({
       success: false,
-      message: error.message,
+      message: error?.message || "Payment verification failed",
     });
   }
 };
@@ -353,8 +404,8 @@ const forgotPassword = async (req, res) => {
 
     user.resetToken = token;
     user.resetTokenExpiry = Date.now() + 15 * 60 * 1000; // 15 minutes
-    let link = process.env.FRONTEND_URL + `/reset-password/${token}`;
-    sendEmail(user.email, link);
+    let resetLink = process.env.FRONTEND_URL + `/reset-password/${token}`;
+    await sendEmail(user.email, "resetPassword", resetLink);
     await user.save();
     return res.json({
       success: true,

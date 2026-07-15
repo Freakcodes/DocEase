@@ -343,22 +343,36 @@ const MedicinesTable = ({ medicines = [] }) => {
 };
 
 const TestsTable = ({ tests = [] }) => {
-  const rows = tests.map((t) =>
-    typeof t === "string" ? t : t.name ?? t.test ?? JSON.stringify(t)
-  );
-
   return (
     <View style={styles.table}>
       <View style={styles.tableHead}>
-        <Text style={[styles.tableHeadCell, styles.colFull]}>Test Name</Text>
+        <Text style={[styles.tableHeadCell, { flex: 2 }]}>Test</Text>
+        <Text style={[styles.tableHeadCell, { flex: 1 }]}>Status</Text>
       </View>
-      {rows.length > 0 ? rows.map((r, i) => (
-        <View key={i} style={[styles.tableRow, i % 2 !== 0 && styles.tableRowAlt]}>
-          <Text style={[styles.tableCell, styles.colFull]}>{r}</Text>
-        </View>
-      )) : (
+
+      {tests.length > 0 ? (
+        tests.map((t, i) => (
+          <View
+            key={i}
+            style={[
+              styles.tableRow,
+              i % 2 !== 0 && styles.tableRowAlt,
+            ]}
+          >
+            <Text style={[styles.tableCell, { flex: 2 }]}>
+              {t.testName}
+            </Text>
+
+            <Text style={[styles.tableCell, { flex: 1 }]}>
+              {t.uploaded ? "Uploaded ✅" : "Pending"}
+            </Text>
+          </View>
+        ))
+      ) : (
         <View style={styles.emptyRow}>
-          <Text style={styles.emptyText}>No tests prescribed</Text>
+          <Text style={styles.emptyText}>
+            No tests prescribed
+          </Text>
         </View>
       )}
     </View>

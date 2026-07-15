@@ -4,7 +4,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import appointmentModel from "../models/appointment.model.js";
 import { v2 as cloudinary } from "cloudinary";
-
+import sendEmail from "../utils/sendEmail.js";
 const toggleAvailability = async (req, res) => {
   try {
     const { docId } = req.body;
@@ -136,6 +136,30 @@ const markCompleteAppointment = async (req, res) => {
 
     await appointment.save();
 
+    // 🔽 EMAIL ONLY (no PDF generation)
+    try {
+      const patientName = appointment.userData?.name;
+      const patientEmail = appointment.userData?.email;
+      const doctorName = appointment.docData?.name;
+      const doctorSpeciality = appointment.docData?.speciality;
+
+      if (patientEmail) {
+        // 👉 you must already have this link logic
+        const pdfLink = `${process.env.FRONTEND_URL}/my-appointments/${appointmentId}`;
+
+        await sendEmail(patientEmail, "consultationComplete", {
+          patientName,
+          doctorName,
+          doctorSpeciality,
+          slotDate: appointment.slotDate,
+          slotTime: appointment.slotTime,
+          pdfLink,
+        });
+      }
+    } catch (emailErr) {
+      console.error("Email failed:", emailErr.message);
+    }
+
     return res.json({
       success: true,
       message: "Appointment completed successfully",
@@ -147,7 +171,6 @@ const markCompleteAppointment = async (req, res) => {
     });
   }
 };
-
 
 //api to get the dashboard data
 
@@ -198,7 +221,7 @@ const dashboardData = async (req, res) => {
 //get appointment details of the doctor..
 
 const getAllAppointments = async (req, res) => {
-  const { page = 1, limit = 10, search = '' } = req.query;
+  const { page = 1, limit = 10, search = "" } = req.query;
   const docId = req.doctorId;
   const skip = (page - 1) * limit;
 
@@ -207,16 +230,17 @@ const getAllAppointments = async (req, res) => {
   if (search) {
     filter = {
       docId,
-      'userData.name': { $regex: search, $options: 'i' }  // ✅ search directly in appointment
+      "userData.name": { $regex: search, $options: "i" }, // ✅ search directly in appointment
     };
   }
 
   const [appointments, total] = await Promise.all([
-    appointmentModel.find(filter)
+    appointmentModel
+      .find(filter)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(Number(limit)),
-    appointmentModel.countDocuments(filter)
+    appointmentModel.countDocuments(filter),
   ]);
 
   res.json({
@@ -225,12 +249,9 @@ const getAllAppointments = async (req, res) => {
     page: Number(page),
     totalPages: Math.ceil(total / limit),
     hasNextPage: page < Math.ceil(total / limit),
-    hasPrevPage: page > 1
+    hasPrevPage: page > 1,
   });
 };
-
-
-
 
 //api to get the doctor profile data
 
@@ -385,7 +406,7 @@ const appointmentDetails = async (req, res) => {
 const getUserAppointmentHistory = async (req, res) => {
   try {
     const { id } = req.params;
-    const{currentAppointmentId}=req.query;
+    const { currentAppointmentId } = req.query;
 
     if (!id) {
       return res.json({
@@ -394,13 +415,10 @@ const getUserAppointmentHistory = async (req, res) => {
       });
     }
     const appointments = await appointmentModel.find({
-      userId:id,
+      userId: id,
       _id: { $ne: currentAppointmentId },
-      isCompleted:true
+      isCompleted: true,
     });
-    
-
-    
 
     if (!appointments) {
       return res.json({
@@ -431,5 +449,5 @@ export {
   updateDoctorProfile,
   appointmentDetails,
   getUserAppointmentHistory,
-  getAppointments
+  getAppointments,
 };

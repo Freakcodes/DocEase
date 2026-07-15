@@ -23,7 +23,7 @@ const Login = () => {
           const {data}=await axios.post(backendUrl+'/api/admin/login',{email,password})
           if(data.success){
             setAdminToken(data.token);
-            sessionStorage.setItem('adminToken',data.token);
+            localStorage.setItem('adminToken',data.token);
             navigate('/admin-dashboard')
           }else{
             toast.error(data.message);
@@ -32,7 +32,7 @@ const Login = () => {
           const {data}=await axios.post(backendUrl+'/api/doctor/login',{email,password})
           if(data.success){
             setDoctortoken(data.token);
-            sessionStorage.setItem('doctortoken',data.token);
+            localStorage.setItem('doctortoken',data.token);
             toast.success('Logged In successfully');
             navigate('/dashboard')
           }else{

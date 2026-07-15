@@ -3,7 +3,7 @@ import { createContext,useState } from "react";
 import { toast } from "react-toastify";
 export const AdminContext = createContext();
 const AdminContextProvider = (props) => {
-  const [adminToken,setAdminToken]=useState(sessionStorage.getItem('adminToken')?sessionStorage.getItem('adminToken'):'');
+  const [adminToken,setAdminToken]=useState(localStorage.getItem('adminToken')?localStorage.getItem('adminToken'):'');
   const [doctor,setDoctor]=useState([]);
   const [appointments,setAppointments]=useState([]);
   const [dashboardData,setDashboardData]=useState([]);

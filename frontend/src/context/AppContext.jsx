@@ -6,7 +6,7 @@ import { toast } from "react-toastify";
 const AppContextProvider = (props) => {
   const [doctors, setDoctors] = useState([]);
   const [token, setToken] = useState(
-    sessionStorage.getItem("token") ? sessionStorage.getItem("token") : ""
+    localStorage.getItem("token") ? localStorage.getItem("token") : ""
   );
 
   const [user, setUser] = useState();
